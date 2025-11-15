@@ -5,12 +5,13 @@ const AttendanceUploader = () => {
   const [markedStudents, setMarkedStudents] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [markedImageUrl, setMarkedImageUrl] = useState("");
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
-    // Clear previous results when a new file is selected
     setMarkedStudents([]);
     setMessage("");
+    setMarkedImageUrl("");
   };
 
   const handleSubmit = async (e) => {
@@ -23,8 +24,9 @@ const AttendanceUploader = () => {
     const formData = new FormData();
     formData.append("groupPhoto", file);
 
-    setLoading(true); // Show loading message
+    setLoading(true);
     setMessage("Uploading and processing... This may take a moment.");
+    setMarkedImageUrl("");
 
     try {
       const res = await fetch("http://localhost:5000/attendance/upload", {
@@ -33,20 +35,31 @@ const AttendanceUploader = () => {
       });
 
       const data = await res.json();
-      setLoading(false); // Hide loading message
+      setLoading(false);
 
       if (res.status === 200 && data.success) {
         setMessage("Attendance marked successfully!");
         setMarkedStudents(data.markedStudents || []);
+
+        // 👇 --- THIS IS THE FIX --- 👇
+        // Hum URL ke aage time add kar rahe hain taaki browser hamesha nayi image load kare
+        setMarkedImageUrl(
+          data.markedImageUrl
+            ? `${data.markedImageUrl}?t=${new Date().getTime()}`
+            : ""
+        );
+        // 👆 --- END OF FIX --- 👆
       } else {
         setMessage(data.error || "An error occurred.");
         setMarkedStudents([]);
+        setMarkedImageUrl("");
       }
     } catch (err) {
       console.error(err);
       setLoading(false);
       setMessage("Upload failed. Server might be down.");
       setMarkedStudents([]);
+      setMarkedImageUrl("");
     }
   };
 
@@ -62,7 +75,7 @@ const AttendanceUploader = () => {
           onChange={handleFileChange}
           required
         />
-        <button type_="submit" disabled={loading}>
+        <button type="submit" disabled={loading}>
           {loading ? "Processing..." : "Upload and Mark"}
         </button>
       </form>
@@ -77,6 +90,25 @@ const AttendanceUploader = () => {
               <li key={index}>{name}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {markedImageUrl && (
+        <div style={{ marginTop: "20px" }}>
+          <h3>Result:</h3>
+          <img
+            src={markedImageUrl}
+            alt="Marked attendance"
+            style={{
+              maxWidth: "600px",
+              width: "100%",
+              borderRadius: "10px",
+              border: "1px solid #ddd",
+            }}
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
         </div>
       )}
     </div>
