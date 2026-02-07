@@ -2,18 +2,23 @@
 const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  rollNumber: { type: String, required: true, unique: true },
-  image: { type: String }, // Yeh "latest photo" dikhayega
+  name: { type: String, required: true },
+  rollNumber: { type: String, required: true },
+  image: { type: String },
 
-  // 👇 --- YEH HAI NAYA SCHEMA --- 👇
-  // Wapas 'faceDescriptor' (singular) par aa gaye
-  faceDescriptor: { type: [Number] }, 
-  // Yeh count karega ki yeh kitni photos ka average hai
-  descriptorCount: { type: Number, default: 0 },
-  // 👆 --- END OF CHANGE --- 👆
+  // Face descriptor storage
+  faceDescriptors: { type: [[Number]], default: [] },
+  faceDescriptor: { type: [Number] },
+  descriptorCount: { type: Number, default: 0 },
 
-  dateAdded: { type: Date, default: Date.now },
+  // Teacher/Classroom association
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", required: true },
+  classroomId: { type: mongoose.Schema.Types.ObjectId, ref: "Classroom", required: true },
+
+  dateAdded: { type: Date, default: Date.now },
 });
+
+// Compound unique index: rollNumber is unique per classroom
+studentSchema.index({ rollNumber: 1, classroomId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Student", studentSchema);

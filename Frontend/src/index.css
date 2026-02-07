@@ -1,1 +1,175 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  /* --- ANIMATIONS --- */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-fade-in: fadeIn 0.6s ease-out;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* --- THEME VARIABLES --- */
+:root {
+  /* LIGHT MODE (Cream/Latte - Keeping your previous soft look) */
+  --bg-app: #faf9f6;
+  --bg-sidebar: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-input: #ffffff;
+  --bg-modal: #ffffff;
+  
+  --nav-active-bg: #f5ebe0;
+  --nav-active-text: #603825;
+  
+  --border-subtle: #e3d5ca;
+  --border-dashed: #d5bdaf;
+  --border-focus: #a98467;
+  
+  --text-main: #43281c;
+  --text-secondary: #7f5539;
+  --text-muted: #a98467;
+  
+  --color-primary: #7f5539;
+  --color-primary-hover: #603825;
+  --color-primary-text: #ffffff;
+  
+  --status-present-bg: #dcfce7;
+  --status-present-text: #15803d;
+  --status-absent-bg: #fee2e2;
+  --status-absent-text: #b91c1c;
+  --system-online: #10b981;
+
+  --shadow-color: 67 40 28;
+}
+
+.dark {
+  /* DARK MODE - Modern Slate Blue Theme */
+  
+  /* 1. Base Backgrounds - Rich deep blues */
+  --bg-app: #0f172a;          /* Slate 900 */
+  --bg-sidebar: #0c1222;      /* Deeper than main */
+  --bg-card: #1e293b;         /* Slate 800 */
+  --bg-input: #1e293b;        /* Slate 800 */
+  --bg-modal: #1e293b;        /* Slate 800 */
+
+  /* 7. Sidebar Specifics */
+  --nav-active-bg: #334155;   /* Slate 700 */
+  --nav-active-text: #38bdf8; /* Sky 400 */
+
+  /* 4. Borders */
+  --border-subtle: #334155;   /* Slate 700 */
+  --border-dashed: #475569;   /* Slate 600 */
+  --border-focus: #38bdf8;    /* Sky 400 */
+
+  /* 3. Text Colors */
+  --text-main: #f1f5f9;       /* Slate 100 */
+  --text-secondary: #cbd5e1;  /* Slate 300 */
+  --text-muted: #94a3b8;      /* Slate 400 */
+
+  /* 2. Brand Colors - Vibrant Sky Blue */
+  --color-primary: #0ea5e9;       /* Sky 500 */
+  --color-primary-hover: #38bdf8; /* Sky 400 */
+  --color-primary-text: #0f172a;  /* Dark text on primary */
+  
+  /* 5. Status Colors */
+  --status-present-bg: #064e3b;   /* Emerald 900 */
+  --status-present-text: #34d399; /* Emerald 400 */
+  --status-absent-bg: #7f1d1d;    /* Red 900 */
+  --status-absent-text: #f87171;  /* Red 400 */
+  --system-online: #22c55e;       /* Green 500 */
+
+  --shadow-color: 0 0 0;
+}
+
+/* --- GLOBAL STYLES --- */
+body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --- COMPONENTS --- */
+
+/* Glass/Panel Card */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 6px -1px rgba(var(--shadow-color), 0.3);
+  border-radius: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+/* Elevated Card (Modals/Popups) */
+.glass-card-elevated {
+  background: var(--bg-modal);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  border-radius: 1.5rem;
+}
+
+/* Inputs */
+.input-premium {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.input-premium:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+  outline: none;
+}
+
+.input-premium::placeholder {
+  color: var(--text-muted);
+}
+
+/* Primary Button */
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0, 0.2);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #3A332D;
+  color: #9B9289;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Dashed Upload Area */
+.upload-area {
+  background: var(--bg-input);
+  border: 2px dashed var(--border-dashed);
+  transition: all 0.3s ease;
+}
+.upload-area:hover {
+  border-color: var(--color-primary);
+  background: var(--bg-card);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-app); }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
