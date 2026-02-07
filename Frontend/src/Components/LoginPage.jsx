@@ -65,7 +65,7 @@ export default function LoginPage({ isDark, setIsDark }) {
             <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
               <FiCamera className="text-xl" />
             </div>
-            <span className="font-bold text-xl">AttendAI</span>
+            <span className="font-bold text-xl">SnapTick</span>
           </div>
           
           <div>
@@ -119,7 +119,7 @@ export default function LoginPage({ isDark, setIsDark }) {
               <div className="h-10 w-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center">
                 <FiCamera className="text-xl text-[var(--color-primary-text)]" />
               </div>
-              <span className="font-bold text-xl text-[var(--text-main)]">AttendAI</span>
+              <span className="font-bold text-xl text-[var(--text-main)]">SnapTick</span>
             </div>
 
             {/* Header */}

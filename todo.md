@@ -1,4 +1,4 @@
-# Attendance Lab - Development Progress
+# SnapTick - Development Progress
 
 ## Changes Done
 

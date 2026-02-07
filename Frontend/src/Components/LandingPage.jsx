@@ -24,7 +24,7 @@ export default function LandingPage({ isDark, setIsDark }) {
               <div className="h-9 w-9 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
                 <FiCamera className="text-[var(--color-primary-text)] text-lg" />
               </div>
-              <span className="font-bold text-lg text-[var(--text-main)]">AttendAI</span>
+              <span className="font-bold text-lg text-[var(--text-main)]">SnapTick</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -323,7 +323,7 @@ export default function LandingPage({ isDark, setIsDark }) {
             <div className="h-7 w-7 rounded-md bg-[var(--color-primary)] flex items-center justify-center">
               <FiCamera className="text-[var(--color-primary-text)] text-sm" />
             </div>
-            <span className="font-semibold text-[var(--text-main)]">AttendAI</span>
+            <span className="font-semibold text-[var(--text-main)]">SnapTick</span>
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             Face recognition attendance for modern classrooms.

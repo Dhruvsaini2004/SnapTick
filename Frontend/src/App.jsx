@@ -64,7 +64,7 @@ function DashboardLayout({ children, isDark, setIsDark }) {
                 <FiCamera className="text-xl" />
             </div>
             <div>
-                <h1 className="font-bold text-xl tracking-tight text-[var(--text-main)]">AttendAI</h1>
+                <h1 className="font-bold text-xl tracking-tight text-[var(--text-main)]">SnapTick</h1>
                 <p className="text-xs font-semibold text-[var(--text-muted)] tracking-wider uppercase">Dashboard</p>
             </div>
         </div>
@@ -283,7 +283,7 @@ function DashboardLayout({ children, isDark, setIsDark }) {
             <div className="h-8 w-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-primary-text)]">
               <FiCamera />
             </div>
-            <span className="font-bold text-[var(--text-main)]">AttendAI</span>
+            <span className="font-bold text-[var(--text-main)]">SnapTick</span>
          </div>
          <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-[var(--text-main)]">
            <FiMenu size={24} />

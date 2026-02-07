@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidelines for agentic coding in this Attendance Lab repository.
+Guidelines for agentic coding in this SnapTick repository.
 
 ## Project Structure
 ```
