@@ -148,6 +148,44 @@ export function ClassroomProvider({ children }) {
     return data;
   }
 
+  // Update student count for a specific classroom (called after student add/delete)
+  const updateStudentCount = useCallback((classroomId, delta) => {
+    setClassrooms(prev => prev.map(c => {
+      if (c._id === classroomId) {
+        return { ...c, studentCount: Math.max(0, (c.studentCount || 0) + delta) };
+      }
+      return c;
+    }));
+
+    // Also update activeClassroom if it matches
+    if (activeClassroom?._id === classroomId) {
+      setActiveClassroom(prev => ({
+        ...prev,
+        studentCount: Math.max(0, (prev.studentCount || 0) + delta)
+      }));
+    }
+  }, [activeClassroom]);
+
+  // Refresh student count for a classroom from the server
+  const refreshClassroomCount = useCallback(async (classroomId) => {
+    try {
+      const res = await fetch(`${API_URL}/classroom/${classroomId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClassrooms(prev => prev.map(c => 
+          c._id === classroomId ? { ...c, studentCount: data.studentCount } : c
+        ));
+        if (activeClassroom?._id === classroomId) {
+          setActiveClassroom(prev => ({ ...prev, studentCount: data.studentCount }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh classroom count:", err);
+    }
+  }, [getAuthHeaders, activeClassroom]);
+
   const value = {
     classrooms,
     activeClassroom,
@@ -157,7 +195,9 @@ export function ClassroomProvider({ children }) {
     selectClassroom,
     createClassroom,
     updateClassroom,
-    deleteClassroom
+    deleteClassroom,
+    updateStudentCount,
+    refreshClassroomCount
   };
 
   return (

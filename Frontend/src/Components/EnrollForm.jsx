@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { FiUserPlus, FiEdit2, FiTrash2, FiSearch, FiCamera, FiCheck, FiPlus, FiRefreshCw, FiCpu } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { useClassroom } from "../context/ClassroomContext";
 import { useToast } from "../context/ToastContext";
 import ConfirmModal from "./ConfirmModal";
 import API_URL from "../config/api";
@@ -29,6 +30,7 @@ const createCompressedPreview = (file, maxWidth = 400) => {
 const EnrollForm = () => {
   const { classroomId } = useOutletContext();
   const { getAuthHeadersMultipart, token } = useAuth();
+  const { updateStudentCount } = useClassroom();
   const [name, setName] = useState("");
   const [rollNumber, setRollNumber] = useState("");
   const [image, setImage] = useState(null);
@@ -103,7 +105,8 @@ const EnrollForm = () => {
       if (!res.ok) throw new Error(data.error || "Failed"); 
       setMessage("Enrolled successfully!"); 
       resetForm(); 
-      fetchStudents(); 
+      fetchStudents();
+      updateStudentCount(classroomId, 1); // Increment student count
     } catch (err) { 
       setError(err.message || "Failed."); 
     } finally { 
@@ -174,7 +177,8 @@ const EnrollForm = () => {
       if (!res.ok) throw new Error("Delete failed");
       toast.success("Student deleted successfully");
       setDeleteConfirm(null);
-      fetchStudents(); 
+      fetchStudents();
+      updateStudentCount(classroomId, -1); // Decrement student count
     } catch (err) {
       toast.error(err.message || "Failed to delete student");
     }
