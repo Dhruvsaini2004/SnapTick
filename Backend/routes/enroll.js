@@ -49,8 +49,12 @@ function isValidObjectId(id) {
 // DeepFace service URL
 const DEEPFACE_SERVICE_URL = process.env.DEEPFACE_URL || "http://localhost:5001";
 
+// Check if DeepFace is remote (not localhost) - requires base64 images
+const isRemoteDeepFace = !DEEPFACE_SERVICE_URL.includes("localhost") && !DEEPFACE_SERVICE_URL.includes("127.0.0.1");
+
 /**
  * Call DeepFace service to extract face embedding from an image
+ * Supports both local (file path) and remote (base64) modes
  * @param {string} imagePath - Absolute path to the image file
  * @returns {Promise<{embedding: number[], facial_area: object}>}
  */
@@ -58,17 +62,29 @@ async function extractFaceEmbedding(imagePath) {
   // Ensure we have an absolute path
   const absolutePath = path.isAbsolute(imagePath) ? imagePath : path.join(UPLOADS_DIR, imagePath);
   
-  console.log(`[DeepFace] Sending image path: ${absolutePath}`);
+  console.log(`[DeepFace] Processing image: ${absolutePath} (remote: ${isRemoteDeepFace})`);
   
   // Create abort controller for timeout (60 seconds for face processing)
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
   
   try {
+    let requestBody;
+    
+    if (isRemoteDeepFace) {
+      // Remote service: send base64 encoded image
+      const imageBuffer = fs.readFileSync(absolutePath);
+      const base64Image = imageBuffer.toString('base64');
+      requestBody = JSON.stringify({ image_base64: base64Image });
+    } else {
+      // Local service: send file path
+      requestBody = JSON.stringify({ image_path: absolutePath });
+    }
+    
     const response = await fetch(`${DEEPFACE_SERVICE_URL}/extract-embedding`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_path: absolutePath }),
+      body: requestBody,
       signal: controller.signal
     });
 

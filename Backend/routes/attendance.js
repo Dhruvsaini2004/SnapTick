@@ -36,11 +36,17 @@ const upload = multer({
 // DeepFace service URL
 const DEEPFACE_SERVICE_URL = process.env.DEEPFACE_URL || "http://localhost:5001";
 
+// Base URL for serving uploaded images (used in responses)
+const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+
+// Check if DeepFace is remote (not localhost) - requires base64 images
+const isRemoteDeepFace = !DEEPFACE_SERVICE_URL.includes("localhost") && !DEEPFACE_SERVICE_URL.includes("127.0.0.1");
+
 // Maximum number of training samples (embeddings) per student
 // This prevents database bloat and keeps matching efficient
 const MAX_TRAINING_SAMPLES = 10;
 
-console.log("DeepFace attendance route initialized (using service at " + DEEPFACE_SERVICE_URL + ")");
+console.log(`DeepFace attendance route initialized (service: ${DEEPFACE_SERVICE_URL}, remote: ${isRemoteDeepFace})`);
 
 /**
  * Clean up old marked images to prevent storage bloat
@@ -79,6 +85,7 @@ setInterval(() => cleanupOldMarkedImages(), 30 * 60 * 1000);
 
 /**
  * Call DeepFace service to match faces in a group photo against enrolled faces
+ * Supports both local (file path) and remote (base64) modes
  * @param {string} imagePath - Absolute path to the group photo
  * @param {Array} enrolledFaces - Array of {rollNumber, descriptors}
  * @returns {Promise<{matches: Array, face_count: number}>}
@@ -87,15 +94,30 @@ async function matchFaces(imagePath, enrolledFaces) {
     // Ensure we have an absolute path
     const absolutePath = path.isAbsolute(imagePath) ? imagePath : path.join(UPLOADS_DIR, imagePath);
     
-    console.log(`[DeepFace] Sending image path for matching: ${absolutePath}`);
+    console.log(`[DeepFace] Matching faces from: ${absolutePath} (remote: ${isRemoteDeepFace})`);
+    
+    let requestBody;
+    
+    if (isRemoteDeepFace) {
+        // Remote service: send base64 encoded image
+        const imageBuffer = fs.readFileSync(absolutePath);
+        const base64Image = imageBuffer.toString('base64');
+        requestBody = JSON.stringify({
+            image_base64: base64Image,
+            enrolled_faces: enrolledFaces
+        });
+    } else {
+        // Local service: send file path
+        requestBody = JSON.stringify({
+            image_path: absolutePath,
+            enrolled_faces: enrolledFaces
+        });
+    }
     
     const response = await fetch(`${DEEPFACE_SERVICE_URL}/match-faces`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            image_path: absolutePath,
-            enrolled_faces: enrolledFaces
-        })
+        body: requestBody
     });
 
     const data = await response.json();
@@ -284,7 +306,7 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
             success: true,
             reviewMode: true,
             detections,
-            markedImageUrl: `http://localhost:5000/uploads/${newImageName}`,
+            markedImageUrl: `${BASE_URL}/uploads/${newImageName}`,
             faceCount: matchResult.face_count,
             recognizedCount: matchResult.recognized_count,
             classroomId,
@@ -618,13 +640,28 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
         }
 
         // Call DeepFace diagnose endpoint
+        let requestBody;
+        
+        if (isRemoteDeepFace) {
+            // Remote service: send base64 encoded image
+            const imageBuffer = fs.readFileSync(absoluteImagePath);
+            const base64Image = imageBuffer.toString('base64');
+            requestBody = JSON.stringify({
+                image_base64: base64Image,
+                enrolled_faces: enrolledFaces
+            });
+        } else {
+            // Local service: send file path
+            requestBody = JSON.stringify({
+                image_path: absoluteImagePath,
+                enrolled_faces: enrolledFaces
+            });
+        }
+        
         const response = await fetch(`${DEEPFACE_SERVICE_URL}/diagnose`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                image_path: absoluteImagePath,
-                enrolled_faces: enrolledFaces
-            })
+            body: requestBody
         });
 
         const diagnosisResult = await response.json();
