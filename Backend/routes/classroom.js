@@ -1,4 +1,4 @@
-// Backend/routes/classroom.js
+// Routes: classroom
 const express = require("express");
 const Classroom = require("../models/classroom");
 const Student = require("../models/student");
@@ -7,7 +7,7 @@ const { authMiddleware } = require("./auth");
 
 const router = express.Router();
 
-// POST /classroom - Create a new classroom
+// POST /classroom - create classroom
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -18,9 +18,9 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
     // Check for duplicate name for this teacher
-    const existing = await Classroom.findOne({ 
-      teacherId, 
-      name: name.trim() 
+    const existing = await Classroom.findOne({
+      teacherId,
+      name: name.trim()
     });
     if (existing) {
       return res.status(409).json({ error: "You already have a classroom with this name" });
@@ -48,7 +48,7 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /classroom - List all classrooms for the logged-in teacher
+// GET /classroom - list classrooms for the logged-in teacher
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const teacherId = req.teacher.id;
@@ -56,7 +56,7 @@ router.get("/", authMiddleware, async (req, res) => {
     const classrooms = await Classroom.find({ teacherId, isActive: true })
       .sort({ createdAt: -1 });
 
-    // Get student count for each classroom
+    // Aggregate student count per classroom
     const classroomIds = classrooms.map(c => c._id);
     const studentCounts = await Student.aggregate([
       { $match: { classroomId: { $in: classroomIds } } },
@@ -80,7 +80,7 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /classroom/:id - Get a single classroom
+// GET /classroom/:id - fetch a single classroom
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,7 +110,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /classroom/:id - Update a classroom
+// PUT /classroom/:id - update classroom
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -161,7 +161,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /classroom/:id - Delete a classroom (cascade: deletes students and attendance)
+// DELETE /classroom/:id - delete classroom (cascade: students and attendance)
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -177,7 +177,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "You can only delete your own classrooms" });
     }
 
-    // Get students to delete their image files
+    // Load students to delete their image files
     const students = await Student.find({ classroomId: id }, "image");
     const fs = require("fs");
     const path = require("path");
@@ -192,13 +192,13 @@ router.delete("/:id", authMiddleware, async (req, res) => {
       }
     }
 
-    // Cascade delete: remove all students in this classroom
+    // Cascade: remove all students in this classroom
     const deleteStudentsResult = await Student.deleteMany({ classroomId: id });
 
-    // Cascade delete: remove all attendance records for this classroom
+    // Cascade: remove all attendance records for this classroom
     const deleteAttendanceResult = await Attendance.deleteMany({ classroomId: id });
 
-    // Delete the classroom
+    // Delete classroom
     await Classroom.findByIdAndDelete(id);
 
     res.status(200).json({

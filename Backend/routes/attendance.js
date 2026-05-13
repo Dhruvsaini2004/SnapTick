@@ -1,4 +1,4 @@
-// Backend/routes/attendance.js
+// Routes: attendance
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -36,21 +36,21 @@ const upload = multer({
 // DeepFace service URL
 const DEEPFACE_SERVICE_URL = process.env.DEEPFACE_URL || "http://localhost:5001";
 
-// Base URL for serving uploaded images (used in responses)
+// Base URL for serving uploaded images
 const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
 
-// Check if DeepFace is remote (not localhost) - requires base64 images
+// Detect remote DeepFace service (requires base64 images)
 const isRemoteDeepFace = !DEEPFACE_SERVICE_URL.includes("localhost") && !DEEPFACE_SERVICE_URL.includes("127.0.0.1");
 
-// Maximum number of training samples (embeddings) per student
-// This prevents database bloat and keeps matching efficient
+// Max training samples per student
+// Prevents database bloat and keeps matching efficient
 const MAX_TRAINING_SAMPLES = 10;
 
 console.log(`DeepFace attendance route initialized (service: ${DEEPFACE_SERVICE_URL}, remote: ${isRemoteDeepFace})`);
 
 /**
- * Clean up old marked images to prevent storage bloat
- * Deletes marked-*.jpg files older than the specified age
+ * Clean up old marked images to control storage growth.
+ * Deletes marked-*.jpg files older than the specified age.
  */
 function cleanupOldMarkedImages(maxAgeMinutes = 30) {
     try {
@@ -79,27 +79,27 @@ function cleanupOldMarkedImages(maxAgeMinutes = 30) {
     }
 }
 
-// Run cleanup on startup and every 30 minutes
+// Run cleanup at startup and every 30 minutes
 cleanupOldMarkedImages();
 setInterval(() => cleanupOldMarkedImages(), 30 * 60 * 1000);
 
 /**
- * Call DeepFace service to match faces in a group photo against enrolled faces
- * Supports both local (file path) and remote (base64) modes
+ * Match faces in a group photo against enrolled descriptors via DeepFace.
+ * Supports both local (file path) and remote (base64) modes.
  * @param {string} imagePath - Absolute path to the group photo
  * @param {Array} enrolledFaces - Array of {rollNumber, descriptors}
  * @returns {Promise<{matches: Array, face_count: number}>}
  */
 async function matchFaces(imagePath, enrolledFaces) {
-    // Ensure we have an absolute path
+    // Ensure absolute path
     const absolutePath = path.isAbsolute(imagePath) ? imagePath : path.join(UPLOADS_DIR, imagePath);
-    
+
     console.log(`[DeepFace] Matching faces from: ${absolutePath} (remote: ${isRemoteDeepFace})`);
-    
+
     let requestBody;
-    
+
     if (isRemoteDeepFace) {
-        // Remote service: send base64 encoded image
+        // Remote service: send base64 image
         const imageBuffer = fs.readFileSync(absolutePath);
         const base64Image = imageBuffer.toString('base64');
         requestBody = JSON.stringify({
@@ -113,7 +113,7 @@ async function matchFaces(imagePath, enrolledFaces) {
             enrolled_faces: enrolledFaces
         });
     }
-    
+
     const response = await fetch(`${DEEPFACE_SERVICE_URL}/match-faces`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,7 +131,7 @@ async function matchFaces(imagePath, enrolledFaces) {
 }
 
 /**
- * Verify that the classroom exists and belongs to the teacher
+ * Validate classroom ownership.
  */
 async function verifyClassroom(classroomId, teacherId) {
     if (!classroomId) {
@@ -150,8 +150,8 @@ async function verifyClassroom(classroomId, teacherId) {
     return { valid: true, classroom };
 }
 
-// POST /attendance/upload - Upload group photo for attendance detection (requires auth)
-// Now returns detections for review instead of marking attendance immediately
+// POST /attendance/upload - upload group photo for detection (auth required)
+// Returns detections for review instead of marking immediately
 router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, res) => {
     let absoluteImagePath = "";
     try {
@@ -160,7 +160,7 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
 
         if (!req.file) return res.status(400).json({ error: "No group photo file uploaded." });
 
-        // Verify classroom
+        // Validate classroom
         const classroomCheck = await verifyClassroom(classroomId, teacherId);
         if (!classroomCheck.valid) {
             if (fs.existsSync(req.file.path)) {
@@ -170,34 +170,34 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
         }
 
         const groupImagePath = req.file.path;
-        
-        // Only get students for this classroom
+
+        // Load students for this classroom
         const students = await Student.find({ classroomId });
 
-        // Prepare enrolled faces for DeepFace service
+        // Prepare enrolled descriptors for DeepFace
         const enrolledFaces = students
             .map((s) => {
                 const descriptors =
                     s.faceDescriptors && s.faceDescriptors.length > 0
                         ? s.faceDescriptors
                         : s.faceDescriptor
-                          ? [s.faceDescriptor]
-                          : [];
+                            ? [s.faceDescriptor]
+                            : [];
 
                 if (descriptors.length === 0) return null;
                 return { rollNumber: s.rollNumber, descriptors };
             })
             .filter(Boolean);
-        
+
         if (enrolledFaces.length === 0) {
             if (fs.existsSync(groupImagePath)) fs.unlinkSync(groupImagePath);
             return res.status(400).json({ error: "No students are enrolled with face data in this classroom." });
         }
 
-        // groupImagePath is already absolute since we use UPLOADS_DIR
+        // groupImagePath is already absolute (UPLOADS_DIR)
         absoluteImagePath = groupImagePath;
 
-        // Call DeepFace service to match faces
+        // Call DeepFace to match faces
         let matchResult;
         try {
             matchResult = await matchFaces(absoluteImagePath, enrolledFaces);
@@ -206,7 +206,7 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
             return res.status(500).json({ error: error.message || "Failed to process faces" });
         }
 
-        // Load image for drawing bounding boxes
+        // Load image for bounding boxes
         const groupImg = await loadImage(absoluteImagePath);
         const outCanvas = createCanvas(groupImg.width, groupImg.height);
         const ctx = outCanvas.getContext('2d');
@@ -216,10 +216,10 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
             students.map((student) => [student.rollNumber, student])
         );
 
-        // Build detection results for review
+        // Build detection results
         const detections = [];
 
-        // Process matches from DeepFace service
+        // Process DeepFace matches
         for (let i = 0; i < matchResult.matches.length; i++) {
             const match = matchResult.matches[i];
             const facial_area = match.facial_area;
@@ -255,12 +255,11 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
             ctx.fillStyle = "#ffffff";
             ctx.fillText(label, labelX + padding, labelY + fontSize + (padding / 2));
 
-            // Calculate confidence (invert distance: lower distance = higher confidence)
-            // Distance range: 0 (same) to 1+ (different)
-            // Confidence: 100% at distance 0, 0% at distance 0.8+
+            // Derive confidence from distance (lower distance = higher confidence).
+            // Distance ~0 => 100%, ~0.8+ => 0%.
             const confidence = Math.max(0, Math.min(100, Math.round((1 - match.distance / 0.8) * 100)));
 
-            // Add to detections for review
+            // Add detection result
             detections.push({
                 faceIndex: i,
                 facialArea: box,
@@ -276,18 +275,18 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
             });
         }
 
-        // Save the annotated image
+        // Save annotated image
         const newImageName = `marked-${req.file.filename}`;
         const newImageSavePath = path.join(UPLOADS_DIR, newImageName);
         const buffer = outCanvas.toBuffer('image/jpeg');
         fs.writeFileSync(newImageSavePath, buffer);
-        
-        // Clean up original image
+
+        // Remove original image
         if (fs.existsSync(absoluteImagePath)) {
             fs.unlinkSync(absoluteImagePath);
         }
 
-        // Schedule cleanup of marked image after 10 minutes (extended for review time)
+        // Schedule cleanup of marked image after 10 minutes
         setTimeout(() => {
             if (fs.existsSync(newImageSavePath)) {
                 fs.unlinkSync(newImageSavePath);
@@ -295,14 +294,14 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
             }
         }, 10 * 60 * 1000);
 
-        // Get enrolled students for correction dropdown
+        // Prepare enrolled students for correction dropdown
         const enrolledStudents = students.map(s => ({
             _id: s._id.toString(),
             name: s.name,
             rollNumber: s.rollNumber
         }));
 
-        res.json({ 
+        res.json({
             success: true,
             reviewMode: true,
             detections,
@@ -330,8 +329,8 @@ router.post("/upload", authMiddleware, upload.single("groupPhoto"), async (req, 
 });
 
 
-// POST /attendance/confirm - Confirm detected faces and mark attendance (requires auth)
-// Called after user reviews detections from /upload
+// POST /attendance/confirm - confirm detections and mark attendance (auth required)
+// Called after review of /upload detections
 router.post("/confirm", authMiddleware, async (req, res) => {
     try {
         const teacherId = req.teacher.id;
@@ -345,13 +344,13 @@ router.post("/confirm", authMiddleware, async (req, res) => {
             return res.status(400).json({ error: "confirmations array is required" });
         }
 
-        // Verify classroom
+        // Validate classroom
         const classroomCheck = await verifyClassroom(classroomId, teacherId);
         if (!classroomCheck.valid) {
             return res.status(400).json({ error: classroomCheck.error });
         }
 
-        // Get current date for attendance
+        // Compute attendance date window
         const now = new Date();
         const startDate = new Date(now);
         startDate.setHours(0, 0, 0, 0);
@@ -359,7 +358,7 @@ router.post("/confirm", authMiddleware, async (req, res) => {
         endDate.setHours(23, 59, 59, 999);
         const attendanceDate = new Date(startDate);
 
-        // Get existing attendance records for today
+        // Load existing attendance records
         const existingRecords = await Attendance.find({
             date: { $gte: startDate, $lte: endDate },
             teacherId,
@@ -367,7 +366,7 @@ router.post("/confirm", authMiddleware, async (req, res) => {
         }, "rollNo");
         const existingRollNumbers = new Set(existingRecords.map(r => r.rollNo));
 
-        // Process each confirmation
+        // Process confirmations
         const markedStudents = [];
         let trainedCount = 0;
         const uniqueRollNumbers = new Set();
@@ -375,24 +374,24 @@ router.post("/confirm", authMiddleware, async (req, res) => {
         for (const confirmation of confirmations) {
             const { faceIndex, studentId, action, addToTraining, embedding } = confirmation;
 
-            // Skip faces marked as "skip" (not enrolled)
+            // Skip faces marked as not enrolled
             if (action === "skip") {
                 continue;
             }
 
-            // Must have a studentId for confirm/correct actions
+            // Confirm/correct actions require studentId
             if (!studentId) {
                 continue;
             }
 
-            // Find the student
+            // Load student
             const student = await Student.findOne({ _id: studentId, classroomId });
             if (!student) {
                 console.log(`[Confirm] Student not found: ${studentId}`);
                 continue;
             }
 
-            // Mark attendance (avoid duplicates)
+            // Mark attendance (dedupe)
             if (!uniqueRollNumbers.has(student.rollNumber) && !existingRollNumbers.has(student.rollNumber)) {
                 try {
                     await Attendance.create({
@@ -410,7 +409,7 @@ router.post("/confirm", authMiddleware, async (req, res) => {
                     existingRollNumbers.add(student.rollNumber);
                 } catch (error) {
                     if (error && error.code === 11000) {
-                        // Duplicate - already marked
+                        // Duplicate: already marked
                         existingRollNumbers.add(student.rollNumber);
                     } else {
                         throw error;
@@ -418,23 +417,23 @@ router.post("/confirm", authMiddleware, async (req, res) => {
                 }
             }
 
-            // Add embedding to student's training data if requested
+            // Add embedding to training data when requested
             if (addToTraining && embedding && Array.isArray(embedding)) {
                 try {
-                    // Initialize faceDescriptors array if it doesn't exist
+                    // Initialize faceDescriptors if missing
                     if (!student.faceDescriptors) {
                         student.faceDescriptors = [];
                     }
-                    
-                    // Check if we've hit the training sample limit
+
+                    // Enforce training sample limit
                     if (student.faceDescriptors.length >= MAX_TRAINING_SAMPLES) {
                         console.log(`[Confirm] ${student.name} (${student.rollNumber}) has reached max training samples (${MAX_TRAINING_SAMPLES}), skipping`);
                     } else {
-                        // Add the new embedding
+                        // Append new embedding
                         student.faceDescriptors.push(embedding);
                         student.descriptorCount = student.faceDescriptors.length;
                         await student.save();
-                        
+
                         trainedCount++;
                         console.log(`[Confirm] Added training data for ${student.name} (${student.rollNumber}), now has ${student.descriptorCount}/${MAX_TRAINING_SAMPLES} photos`);
                     }
@@ -459,9 +458,9 @@ router.post("/confirm", authMiddleware, async (req, res) => {
 });
 
 
-// --- MANUAL ATTENDANCE ROUTES ---
+// Manual attendance routes
 
-// GET /attendance - Get attendance records for a classroom
+// GET /attendance - list attendance records
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const { date, classroomId } = req.query;
@@ -470,18 +469,18 @@ router.get("/", authMiddleware, async (req, res) => {
         if (!date) return res.status(400).json({ error: "Date query parameter is required." });
         if (!classroomId) return res.status(400).json({ error: "classroomId query parameter is required." });
 
-        // Verify classroom belongs to teacher
+        // Validate classroom ownership
         const classroomCheck = await verifyClassroom(classroomId, teacherId);
         if (!classroomCheck.valid) {
             return res.status(400).json({ error: classroomCheck.error });
         }
-        
+
         const startDate = new Date(date);
         startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(date);
         endDate.setHours(23, 59, 59, 999);
-        
-        const records = await Attendance.find({ 
+
+        const records = await Attendance.find({
             date: { $gte: startDate, $lte: endDate },
             teacherId,
             classroomId
@@ -493,7 +492,7 @@ router.get("/", authMiddleware, async (req, res) => {
     }
 });
 
-// POST /attendance/mark - Mark attendance manually
+// POST /attendance/mark - mark attendance manually
 router.post("/mark", authMiddleware, async (req, res) => {
     try {
         const { rollNumber, name, date, classroomId } = req.body;
@@ -503,24 +502,24 @@ router.post("/mark", authMiddleware, async (req, res) => {
             return res.status(400).json({ error: "rollNumber, name, date, and classroomId are required." });
         }
 
-        // Verify classroom belongs to teacher
+        // Validate classroom ownership
         const classroomCheck = await verifyClassroom(classroomId, teacherId);
         if (!classroomCheck.valid) {
             return res.status(400).json({ error: classroomCheck.error });
         }
-        
+
         const specificDate = new Date(date);
         const startDate = new Date(new Date(specificDate).setHours(0, 0, 0, 0));
         const endDate = new Date(new Date(specificDate).setHours(23, 59, 59, 999));
         const attendanceDate = new Date(startDate);
 
-        const existingRecord = await Attendance.findOne({ 
-            rollNo: rollNumber, 
+        const existingRecord = await Attendance.findOne({
+            rollNo: rollNumber,
             date: { $gte: startDate, $lte: endDate },
             teacherId,
             classroomId
         });
-        
+
         if (existingRecord) {
             return res.status(200).json({ message: "Student already marked present.", record: existingRecord });
         }
@@ -553,7 +552,7 @@ router.post("/mark", authMiddleware, async (req, res) => {
     }
 });
 
-// DELETE /attendance/unmark - Unmark attendance
+// DELETE /attendance/unmark - remove attendance record
 router.delete("/unmark", authMiddleware, async (req, res) => {
     try {
         const { rollNumber, date, classroomId } = req.body;
@@ -563,7 +562,7 @@ router.delete("/unmark", authMiddleware, async (req, res) => {
             return res.status(400).json({ error: "rollNumber, date, and classroomId are required." });
         }
 
-        // Verify classroom belongs to teacher
+        // Validate classroom ownership
         const classroomCheck = await verifyClassroom(classroomId, teacherId);
         if (!classroomCheck.valid) {
             return res.status(400).json({ error: classroomCheck.error });
@@ -573,13 +572,13 @@ router.delete("/unmark", authMiddleware, async (req, res) => {
         const startDate = new Date(new Date(specificDate).setHours(0, 0, 0, 0));
         const endDate = new Date(new Date(specificDate).setHours(23, 59, 59, 999));
 
-        const result = await Attendance.findOneAndDelete({ 
-            rollNo: rollNumber, 
+        const result = await Attendance.findOneAndDelete({
+            rollNo: rollNumber,
             date: { $gte: startDate, $lte: endDate },
             teacherId,
             classroomId
         });
-        
+
         if (!result) {
             return res.status(404).json({ error: "No attendance record found for this student on this date." });
         }
@@ -591,7 +590,7 @@ router.delete("/unmark", authMiddleware, async (req, res) => {
     }
 });
 
-// POST /attendance/diagnose - Diagnose face matching issues (requires auth)
+// POST /attendance/diagnose - diagnose matching issues (auth required)
 router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req, res) => {
     let absoluteImagePath = "";
     try {
@@ -600,7 +599,7 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
 
         if (!req.file) return res.status(400).json({ error: "No group photo file uploaded." });
 
-        // Verify classroom
+        // Validate classroom
         const classroomCheck = await verifyClassroom(classroomId, teacherId);
         if (!classroomCheck.valid) {
             if (fs.existsSync(req.file.path)) {
@@ -611,29 +610,29 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
 
         const groupImagePath = req.file.path;
         absoluteImagePath = groupImagePath;
-        
-        // Get students for this classroom
+
+        // Load students for this classroom
         const students = await Student.find({ classroomId });
-        
-        // Prepare enrolled faces for DeepFace service
+
+        // Prepare enrolled descriptors for DeepFace
         const enrolledFaces = students
             .map((s) => {
                 const descriptors =
                     s.faceDescriptors && s.faceDescriptors.length > 0
                         ? s.faceDescriptors
                         : s.faceDescriptor
-                          ? [s.faceDescriptor]
-                          : [];
+                            ? [s.faceDescriptor]
+                            : [];
 
                 if (descriptors.length === 0) return null;
-                return { 
-                    rollNumber: s.rollNumber, 
+                return {
+                    rollNumber: s.rollNumber,
                     name: s.name,
-                    descriptors 
+                    descriptors
                 };
             })
             .filter(Boolean);
-        
+
         if (enrolledFaces.length === 0) {
             if (fs.existsSync(groupImagePath)) fs.unlinkSync(groupImagePath);
             return res.status(400).json({ error: "No students are enrolled with face data in this classroom." });
@@ -641,9 +640,9 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
 
         // Call DeepFace diagnose endpoint
         let requestBody;
-        
+
         if (isRemoteDeepFace) {
-            // Remote service: send base64 encoded image
+            // Remote service: send base64 image
             const imageBuffer = fs.readFileSync(absoluteImagePath);
             const base64Image = imageBuffer.toString('base64');
             requestBody = JSON.stringify({
@@ -657,7 +656,7 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
                 enrolled_faces: enrolledFaces
             });
         }
-        
+
         const response = await fetch(`${DEEPFACE_SERVICE_URL}/diagnose`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -665,7 +664,7 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
         });
 
         const diagnosisResult = await response.json();
-        
+
         // Clean up uploaded image
         if (fs.existsSync(absoluteImagePath)) {
             fs.unlinkSync(absoluteImagePath);
@@ -675,14 +674,14 @@ router.post("/diagnose", authMiddleware, upload.single("groupPhoto"), async (req
             return res.status(500).json({ error: diagnosisResult.error || "Failed to diagnose" });
         }
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             classroomId,
             classroomName: classroomCheck.classroom.name,
-            enrolledStudents: enrolledFaces.map(f => ({ 
-                rollNumber: f.rollNumber, 
+            enrolledStudents: enrolledFaces.map(f => ({
+                rollNumber: f.rollNumber,
                 name: f.name,
-                numPhotos: f.descriptors.length 
+                numPhotos: f.descriptors.length
             })),
             ...diagnosisResult
         });

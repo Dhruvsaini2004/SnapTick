@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      #div {
+        background: #222;
+        color: #fff;
+        border-radius: 8px;
+        border: 1px solid #444;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+        padding: 8px 0;
+        width: 140px;
+        position: absolute;
+        display: none;
+        z-index: 1000;
+        font-family: system-ui, sans-serif;
+        font-size: 15px;
+        user-select: none;
+      }
+      #div p {
+        margin: 0;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      #div p:hover {
+        background: #444;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="div">
+      <p>Copy</p>
+      <p>Paste</p>
+      <p>Delete</p>
+    </div>
+
+    <script>
+      const div = document.getElementById("div");
+      document.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        // Calculate position to prevent overflow
+        const menuWidth = div.offsetWidth || 140;
+        const menuHeight = div.offsetHeight || 120;
+        const pageWidth = window.innerWidth;
+        const pageHeight = window.innerHeight;
+        let left = e.clientX;
+        let top = e.clientY;
+        if (left + menuWidth > pageWidth) left = pageWidth - menuWidth - 4;
+        if (top + menuHeight > pageHeight) top = pageHeight - menuHeight - 4;
+        div.style.left = left + "px";
+        div.style.top = top + "px";
+        div.style.display = "block";
+      });
+      // Hide menu when clicking outside
+      document.addEventListener("mousedown", (e) => {
+        if (!div.contains(e.target)) {
+          div.style.display = "none";
+        }
+      });
+      // Optional: Hide on window resize or scroll
+      window.addEventListener("resize", () => {
+        div.style.display = "none";
+      });
+      window.addEventListener("scroll", () => {
+        div.style.display = "none";
+      });
+    </script>
+  </body>
+</html>

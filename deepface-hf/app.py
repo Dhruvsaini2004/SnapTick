@@ -1,15 +1,15 @@
 """
-DeepFace Flask Microservice for Hugging Face Spaces Deployment
-This is a cloud-compatible version that accepts base64 images instead of file paths.
+DeepFace Flask microservice for Hugging Face Spaces.
+Cloud-friendly: accepts base64 images instead of file paths.
 
-MODELS USED (same as local version):
-- Recognition: ArcFace (512-dim embeddings, best accuracy with angular margin loss)
-- Detection: RetinaFace (5-point landmark alignment, handles angles/lighting)
+Models (same as local):
+- Recognition: ArcFace (512-dim embeddings, strong angular margin loss)
+- Detection: RetinaFace (5-point landmark alignment, robust to pose/lighting)
 """
 
 import os
-# Optimize TensorFlow BEFORE importing
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF warnings
+# Configure TensorFlow before importing it.
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Reduce TensorFlow log noise
 os.environ["TF_DETERMINISTIC_OPS"] = "1"
 os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
 
@@ -20,7 +20,7 @@ import cv2
 import base64
 import traceback
 
-# Check GPU/CPU
+# Detect GPU/CPU availability
 try:
     import tensorflow as tf
     tf.config.experimental.enable_op_determinism()
@@ -38,7 +38,7 @@ except Exception as e:
 app = Flask(__name__)
 
 # =============================================================================
-# MODEL CONFIGURATION - Same as local version
+# Model configuration (same as local)
 # =============================================================================
 MODEL_NAME = "ArcFace"
 DETECTOR_BACKEND = os.environ.get("DETECTOR_BACKEND", "retinaface")
@@ -72,7 +72,7 @@ def convert_to_native(obj):
 
 def load_image_from_base64(base64_string):
     """Load image from base64 string"""
-    # Handle data URL format
+    # Strip data URL prefix if present
     if "," in base64_string:
         base64_string = base64_string.split(",")[1]
     img_data = base64.b64decode(base64_string)
@@ -246,7 +246,7 @@ def match_faces():
                 "message": "No faces detected in the image"
             })
 
-        # Sort by position for consistency
+        # Sort by position for stable ordering
         def get_face_position(det):
             fa = det.get("facial_area", {})
             return (fa.get("y", 0), fa.get("x", 0))
@@ -286,7 +286,7 @@ def match_faces():
             
             gap = second_best["distance"] - best["distance"]
             
-            # Adaptive gap based on confidence
+            # Adjust required gap based on confidence
             if best["distance"] <= 0.35:
                 required_gap = 0.01
             elif best["distance"] <= 0.45:
@@ -464,7 +464,7 @@ def diagnose_matching():
 
 
 if __name__ == "__main__":
-    # Pre-load model
+    # Warm up the model on startup
     print("Pre-loading DeepFace model...")
     try:
         dummy_img = np.zeros((224, 224, 3), dtype=np.uint8)
@@ -479,6 +479,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Model pre-load note: {e}")
 
-    port = int(os.environ.get("PORT", 7860))  # Hugging Face uses 7860
+    port = int(os.environ.get("PORT", 7860))  # Hugging Face default is 7860
     print(f"Starting DeepFace service on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)

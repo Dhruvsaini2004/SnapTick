@@ -1,4 +1,4 @@
-// Backend/models/classroom.js
+// Model: Classroom
 const mongoose = require("mongoose");
 
 const classroomSchema = new mongoose.Schema({
@@ -10,14 +10,14 @@ const classroomSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
-// Index for fast lookup by teacher
+// Index to speed up teacher lookups
 classroomSchema.index({ teacherId: 1 });
 
-// Compound unique: same teacher can't have two classrooms with identical names
+// Prevent duplicate classroom names per teacher
 classroomSchema.index({ teacherId: 1, name: 1 }, { unique: true });
 
-// Update the updatedAt field on save
-classroomSchema.pre("save", function(next) {
+// Keep updatedAt current on save
+classroomSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
 });

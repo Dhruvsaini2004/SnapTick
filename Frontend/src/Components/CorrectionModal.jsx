@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FiX, FiUserCheck, FiUserX } from "react-icons/fi";
 
-const CorrectionModal = ({ 
-  isOpen, 
-  onClose, 
-  onSave, 
-  faceIndex, 
-  currentMatch, 
-  enrolledStudents 
+const CorrectionModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  faceIndex,
+  currentMatch,
+  enrolledStudents,
 }) => {
-  const [correctionType, setCorrectionType] = useState("not_enrolled"); // "not_enrolled" | "different_student"
+  const [correctionType, setCorrectionType] = useState("not_enrolled"); // Allowed: "not_enrolled" | "different_student"
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [addToTraining, setAddToTraining] = useState(true);
 
@@ -20,17 +20,17 @@ const CorrectionModal = ({
         faceIndex,
         action: "skip",
         studentId: null,
-        addToTraining: false
+        addToTraining: false,
       });
     } else if (correctionType === "different_student" && selectedStudentId) {
       onSave({
         faceIndex,
         action: "correct",
         studentId: selectedStudentId,
-        addToTraining
+        addToTraining,
       });
     }
-    // Reset state
+    // Reset local state
     setCorrectionType("not_enrolled");
     setSelectedStudentId("");
     setAddToTraining(true);
@@ -49,7 +49,7 @@ const CorrectionModal = ({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* Backdrop */}
+        {/* Modal backdrop */}
         <Motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -58,14 +58,14 @@ const CorrectionModal = ({
           onClick={handleClose}
         />
 
-        {/* Modal */}
+        {/* Modal container */}
         <Motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="relative z-10 w-full max-w-md mx-4 bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-[var(--border-subtle)] overflow-hidden"
         >
-          {/* Header */}
+          {/* Modal header */}
           <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
             <h2 className="text-lg font-bold text-[var(--text-main)]">
               Correct Face #{faceIndex + 1}
@@ -78,12 +78,14 @@ const CorrectionModal = ({
             </button>
           </div>
 
-          {/* Content */}
+          {/* Modal body */}
           <div className="p-5 space-y-5">
-            {/* Current match info */}
+            {/* Current match */}
             {currentMatch && (
               <div className="p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-subtle)]">
-                <p className="text-sm text-[var(--text-muted)]">Currently matched as:</p>
+                <p className="text-sm text-[var(--text-muted)]">
+                  Currently matched as:
+                </p>
                 <p className="text-lg font-bold text-[var(--text-main)]">
                   {currentMatch.name || "Unknown"}
                 </p>
@@ -92,14 +94,18 @@ const CorrectionModal = ({
 
             {/* Correction options */}
             <div className="space-y-3">
-              <p className="text-sm font-bold text-[var(--text-muted)]">This person is:</p>
+              <p className="text-sm font-bold text-[var(--text-muted)]">
+                This person is:
+              </p>
 
               {/* Not enrolled option */}
-              <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                correctionType === "not_enrolled" 
-                  ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5" 
-                  : "border-[var(--border-subtle)] hover:border-[var(--text-muted)]"
-              }`}>
+              <label
+                className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                  correctionType === "not_enrolled"
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                    : "border-[var(--border-subtle)] hover:border-[var(--text-muted)]"
+                }`}
+              >
                 <input
                   type="radio"
                   name="correctionType"
@@ -108,27 +114,33 @@ const CorrectionModal = ({
                   onChange={() => setCorrectionType("not_enrolled")}
                   className="sr-only"
                 />
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  correctionType === "not_enrolled" 
-                    ? "border-[var(--color-primary)]" 
-                    : "border-[var(--text-muted)]"
-                }`}>
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    correctionType === "not_enrolled"
+                      ? "border-[var(--color-primary)]"
+                      : "border-[var(--text-muted)]"
+                  }`}
+                >
                   {correctionType === "not_enrolled" && (
                     <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)]" />
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <FiUserX className="text-[var(--text-muted)]" />
-                  <span className="font-medium text-[var(--text-main)]">Not enrolled (skip this face)</span>
+                  <span className="font-medium text-[var(--text-main)]">
+                    Not enrolled (skip this face)
+                  </span>
                 </div>
               </label>
 
               {/* Different student option */}
-              <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                correctionType === "different_student" 
-                  ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5" 
-                  : "border-[var(--border-subtle)] hover:border-[var(--text-muted)]"
-              }`}>
+              <label
+                className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                  correctionType === "different_student"
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                    : "border-[var(--border-subtle)] hover:border-[var(--text-muted)]"
+                }`}
+              >
                 <input
                   type="radio"
                   name="correctionType"
@@ -137,11 +149,13 @@ const CorrectionModal = ({
                   onChange={() => setCorrectionType("different_student")}
                   className="sr-only"
                 />
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                  correctionType === "different_student" 
-                    ? "border-[var(--color-primary)]" 
-                    : "border-[var(--text-muted)]"
-                }`}>
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                    correctionType === "different_student"
+                      ? "border-[var(--color-primary)]"
+                      : "border-[var(--text-muted)]"
+                  }`}
+                >
                   {correctionType === "different_student" && (
                     <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)]" />
                   )}
@@ -149,10 +163,12 @@ const CorrectionModal = ({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <FiUserCheck className="text-[var(--text-muted)]" />
-                    <span className="font-medium text-[var(--text-main)]">A different student:</span>
+                    <span className="font-medium text-[var(--text-main)]">
+                      A different student:
+                    </span>
                   </div>
-                  
-                  {/* Student dropdown */}
+
+                  {/* Student selection */}
                   <select
                     value={selectedStudentId}
                     onChange={(e) => {
@@ -172,7 +188,7 @@ const CorrectionModal = ({
               </label>
             </div>
 
-            {/* Add to training checkbox */}
+            {/* Add to training */}
             {correctionType === "different_student" && selectedStudentId && (
               <Motion.label
                 initial={{ opacity: 0, height: 0 }}
@@ -186,7 +202,9 @@ const CorrectionModal = ({
                   className="w-5 h-5 rounded border-[var(--border-subtle)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 <div>
-                  <p className="font-medium text-[var(--text-main)]">Add to training data</p>
+                  <p className="font-medium text-[var(--text-main)]">
+                    Add to training data
+                  </p>
                   <p className="text-xs text-[var(--text-muted)]">
                     Improves future recognition for this student
                   </p>
@@ -195,7 +213,7 @@ const CorrectionModal = ({
             )}
           </div>
 
-          {/* Footer */}
+          {/* Modal footer */}
           <div className="flex gap-3 p-5 border-t border-[var(--border-subtle)] bg-[var(--bg-input)]">
             <button
               onClick={handleClose}
@@ -205,7 +223,9 @@ const CorrectionModal = ({
             </button>
             <button
               onClick={handleSave}
-              disabled={correctionType === "different_student" && !selectedStudentId}
+              disabled={
+                correctionType === "different_student" && !selectedStudentId
+              }
               className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-text)] font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Correction

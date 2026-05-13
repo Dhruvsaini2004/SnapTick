@@ -1,31 +1,31 @@
 /**
- * Migration Script: Backfill faceDescriptors from legacy faceDescriptor
- * 
- * This script finds all students that have a legacy faceDescriptor but no
- * faceDescriptors array, and copies the legacy descriptor into the new array format.
- * 
+ * Migration: backfill `faceDescriptors` from legacy `faceDescriptor`.
+ *
+ * Finds students with a legacy descriptor and a missing or empty
+ * `faceDescriptors` array, then copies the legacy vector into the new format.
+ *
  * Usage:
  *   cd Backend
  *   node scripts/migrate-descriptors.js
- * 
+ *
  * Options:
- *   --dry-run    Show what would be migrated without making changes
- *   --verbose    Show detailed output for each student
+ *   --dry-run  Print changes without writing
+ *   --verbose  Print per-student details
  */
 
 require("dotenv").config();
 const mongoose = require("mongoose");
 const path = require("path");
 
-// Parse command line arguments
+// Parse CLI flags
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const verbose = args.includes("--verbose");
 
-// Import database connection and models
+// Database connection
 const connectDB = require("../db");
 
-// Define Student model inline to avoid circular dependencies
+// Inline model to avoid circular imports
 const studentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   rollNumber: { type: String, required: true },
@@ -42,18 +42,18 @@ async function migrate() {
   console.log("=".repeat(60));
   console.log("Face Descriptor Migration Script");
   console.log("=".repeat(60));
-  
+
   if (dryRun) {
     console.log("\n[DRY RUN MODE] - No changes will be made\n");
   }
 
   try {
-    // Connect to database
+    // Connect to MongoDB
     console.log("Connecting to MongoDB...");
     await connectDB();
     console.log("Connected successfully!\n");
 
-    // Get the Student model (use existing if already registered)
+    // Reuse model if already registered
     let Student;
     try {
       Student = mongoose.model("Student");
@@ -61,9 +61,7 @@ async function migrate() {
       Student = mongoose.model("Student", studentSchema);
     }
 
-    // Find students that need migration:
-    // - Have a legacy faceDescriptor (array with values)
-    // - Don't have faceDescriptors OR faceDescriptors is empty
+    // Legacy descriptor present, new array missing or empty
     const studentsToMigrate = await Student.find({
       faceDescriptor: { $exists: true, $not: { $size: 0 } },
       $or: [
@@ -80,7 +78,7 @@ async function migrate() {
       process.exit(0);
     }
 
-    // Show summary
+    // Preview list
     console.log("Students to migrate:");
     console.log("-".repeat(50));
     for (const student of studentsToMigrate) {
@@ -96,7 +94,7 @@ async function migrate() {
       process.exit(0);
     }
 
-    // Perform migration
+    // Apply migration
     let successCount = 0;
     let errorCount = 0;
 
@@ -106,10 +104,10 @@ async function migrate() {
           console.log(`Migrating ${student.rollNumber}: ${student.name}...`);
         }
 
-        // Copy legacy descriptor to new array format
+        // Copy legacy vector into the new array format
         student.faceDescriptors = [student.faceDescriptor];
         student.descriptorCount = 1;
-        
+
         await student.save();
         successCount++;
 
@@ -122,7 +120,7 @@ async function migrate() {
       }
     }
 
-    // Summary
+    // Final summary
     console.log("\n" + "=".repeat(60));
     console.log("Migration Complete");
     console.log("=".repeat(60));
@@ -139,10 +137,10 @@ async function migrate() {
     console.error(error.stack);
     try {
       await mongoose.connection.close();
-    } catch {}
+    } catch { }
     process.exit(1);
   }
 }
 
-// Run migration
+// Execute migration
 migrate();

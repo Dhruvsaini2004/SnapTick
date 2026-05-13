@@ -4,7 +4,7 @@ echo
 
 cd "$(dirname "$0")"
 
-# Check if virtual environment exists
+# Use existing virtual environment if available
 if [ -d "venv" ]; then
     echo "Using existing virtual environment..."
     source venv/bin/activate

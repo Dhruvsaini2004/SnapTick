@@ -1,11 +1,11 @@
-// backend/routes/auth.js
+// Routes: auth
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Teacher = require("../models/teacher");
 
 const router = express.Router();
 
-// JWT Secret - MUST be set in environment variables for production
+// JWT secret must be set via environment in production
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   console.error("⚠️  WARNING: JWT_SECRET not set in environment variables!");
@@ -17,21 +17,21 @@ const JWT_EXPIRES_IN = "7d";
 // Generate JWT token
 function generateToken(teacher) {
   return jwt.sign(
-    { 
-      id: teacher._id, 
-      email: teacher.email, 
+    {
+      id: teacher._id,
+      email: teacher.email,
       name: teacher.name,
-      role: teacher.role 
+      role: teacher.role
     },
     SECURE_JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
 }
 
-// Middleware to verify JWT token
+// JWT verification middleware
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "No token provided" });
   }
@@ -47,7 +47,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// POST /auth/register - Register a new teacher
+// POST /auth/register - register teacher
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -60,13 +60,13 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
-    // Check if email already exists
+    // Check for existing email
     const existingTeacher = await Teacher.findOne({ email: email.toLowerCase() });
     if (existingTeacher) {
       return res.status(409).json({ error: "Email already registered" });
     }
 
-    // Create new teacher
+    // Create teacher
     const teacher = new Teacher({
       name,
       email: email.toLowerCase(),
@@ -89,7 +89,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// POST /auth/login - Login teacher
+// POST /auth/login - authenticate teacher
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -104,7 +104,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Check if account is active
+    // Ensure account is active
     if (!teacher.isActive) {
       return res.status(403).json({ error: "Account is deactivated" });
     }
@@ -115,7 +115,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Update last login
+    // Update last login timestamp
     teacher.lastLogin = new Date();
     await teacher.save();
 
@@ -133,7 +133,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /auth/verify - Verify token and get current teacher
+// GET /auth/verify - verify token and return teacher
 router.get("/verify", authMiddleware, async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.teacher.id);
@@ -152,7 +152,7 @@ router.get("/verify", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /auth/teachers - Get all teachers (admin only)
+// GET /auth/teachers - list all teachers (admin only)
 router.get("/teachers", authMiddleware, async (req, res) => {
   try {
     const teachers = await Teacher.find({}, "-password");
@@ -163,7 +163,7 @@ router.get("/teachers", authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /auth/change-password - Change password
+// PUT /auth/change-password - change password
 router.put("/change-password", authMiddleware, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -197,6 +197,6 @@ router.put("/change-password", authMiddleware, async (req, res) => {
   }
 });
 
-// Export router and middleware
+// Exports
 module.exports = router;
 module.exports.authMiddleware = authMiddleware;

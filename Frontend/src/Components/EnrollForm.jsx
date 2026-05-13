@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { FiUserPlus, FiEdit2, FiTrash2, FiSearch, FiCamera, FiCheck, FiPlus, FiRefreshCw, FiCpu } from "react-icons/fi";
+import {
+  FiUserPlus,
+  FiEdit2,
+  FiTrash2,
+  FiSearch,
+  FiCamera,
+  FiCheck,
+  FiPlus,
+  FiRefreshCw,
+  FiCpu,
+} from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { useClassroom } from "../context/ClassroomContext";
 import { useToast } from "../context/ToastContext";
 import ConfirmModal from "./ConfirmModal";
 import API_URL from "../config/api";
 
-// Compress image for preview to avoid browser lag
+// Compress preview image to reduce browser load
 const createCompressedPreview = (file, maxWidth = 400) => {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
@@ -50,95 +60,100 @@ const EnrollForm = () => {
 
   const fetchStudents = async () => {
     try {
-        const res = await fetch(`${API_URL}/enroll?classroomId=${classroomId}&t=${Date.now()}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        setStudents(Array.isArray(data) ? data : []);
-    } catch (err) { console.error(err); }
+      const res = await fetch(
+        `${API_URL}/enroll?classroomId=${classroomId}&t=${Date.now()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setStudents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  useEffect(() => { 
-    if (classroomId) fetchStudents(); 
+  useEffect(() => {
+    if (classroomId) fetchStudents();
   }, [token, classroomId]);
 
-  const resetForm = () => { 
-    setName(""); 
-    setRollNumber(""); 
-    setImage(null); 
-    setImagePreview(""); 
-    setEditing(null); 
+  const resetForm = () => {
+    setName("");
+    setRollNumber("");
+    setImage(null);
+    setImagePreview("");
+    setEditing(null);
     setAddingPhoto(null);
-    setMessage(""); 
-    setError(""); 
+    setMessage("");
+    setError("");
   };
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-        if (editing) setEditing({ ...editing, image: file }); 
-        else if (addingPhoto) setAddingPhoto({ ...addingPhoto, image: file });
-        else setImage(file);
-        const compressed = await createCompressedPreview(file);
-        setImagePreview(compressed || URL.createObjectURL(file));
+      if (editing) setEditing({ ...editing, image: file });
+      else if (addingPhoto) setAddingPhoto({ ...addingPhoto, image: file });
+      else setImage(file);
+      const compressed = await createCompressedPreview(file);
+      setImagePreview(compressed || URL.createObjectURL(file));
     }
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); 
-    const formData = new FormData(); 
-    formData.append("name", name); 
-    formData.append("rollNumber", rollNumber); 
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("rollNumber", rollNumber);
     formData.append("image", image);
     formData.append("classroomId", classroomId);
-    setLoading(true); 
-    setMessage(""); 
+    setLoading(true);
+    setMessage("");
     setError("");
-    try { 
-      const res = await fetch(`${API_URL}/enroll`, { 
-        method: "POST", 
+    try {
+      const res = await fetch(`${API_URL}/enroll`, {
+        method: "POST",
         headers: getAuthHeadersMultipart(),
-        body: formData 
-      }); 
+        body: formData,
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed"); 
-      setMessage("Enrolled successfully!"); 
-      resetForm(); 
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setMessage("Enrolled successfully!");
+      resetForm();
       fetchStudents();
-      updateStudentCount(classroomId, 1); // Increment student count
-    } catch (err) { 
-      setError(err.message || "Failed."); 
-    } finally { 
-      setLoading(false); 
+      updateStudentCount(classroomId, 1); // Increase student count
+    } catch (err) {
+      setError(err.message || "Failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUpdate = async (e) => {
-    e.preventDefault(); 
-    if (!editing) return; 
-    const formData = new FormData(); 
-    formData.append("name", editing.name); 
-    formData.append("rollNumber", editing.rollNumber); 
-    if (editing.image) formData.append("image", editing.image); 
-    setLoading(true); 
-    setMessage(""); 
+    e.preventDefault();
+    if (!editing) return;
+    const formData = new FormData();
+    formData.append("name", editing.name);
+    formData.append("rollNumber", editing.rollNumber);
+    if (editing.image) formData.append("image", editing.image);
+    setLoading(true);
+    setMessage("");
     setError("");
-    try { 
-      const res = await fetch(`${API_URL}/enroll/${editing._id}`, { 
-        method: "PUT", 
+    try {
+      const res = await fetch(`${API_URL}/enroll/${editing._id}`, {
+        method: "PUT",
         headers: getAuthHeadersMultipart(),
-        body: formData 
-      }); 
+        body: formData,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Update failed");
-      setMessage("Updated!"); 
-      resetForm(); 
-      fetchStudents(); 
-    } catch (err) { 
-      setError(err.message || "Update failed."); 
-    } finally { 
-      setLoading(false); 
+      setMessage("Updated!");
+      resetForm();
+      fetchStudents();
+    } catch (err) {
+      setError(err.message || "Update failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,11 +166,14 @@ const EnrollForm = () => {
     setMessage("");
     setError("");
     try {
-      const res = await fetch(`${API_URL}/enroll/${addingPhoto._id}/add-photo`, {
-        method: "POST",
-        headers: getAuthHeadersMultipart(),
-        body: formData
-      });
+      const res = await fetch(
+        `${API_URL}/enroll/${addingPhoto._id}/add-photo`,
+        {
+          method: "POST",
+          headers: getAuthHeadersMultipart(),
+          body: formData,
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add photo");
       setMessage(data.message || "Photo added!");
@@ -168,17 +186,17 @@ const EnrollForm = () => {
     }
   };
 
-  const handleDelete = async (id) => { 
+  const handleDelete = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/enroll/${id}`, { 
+      const res = await fetch(`${API_URL}/enroll/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      }); 
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error("Delete failed");
       toast.success("Student deleted successfully");
       setDeleteConfirm(null);
       fetchStudents();
-      updateStudentCount(classroomId, -1); // Decrement student count
+      updateStudentCount(classroomId, -1); // Decrease student count
     } catch (err) {
       toast.error(err.message || "Failed to delete student");
     }
@@ -188,7 +206,7 @@ const EnrollForm = () => {
     try {
       const res = await fetch(`${API_URL}/enroll/${id}/reset-photos`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Reset failed");
@@ -206,11 +224,11 @@ const EnrollForm = () => {
     try {
       const res = await fetch(`${API_URL}/enroll/re-embed`, {
         method: "POST",
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ classroomId })
+        body: JSON.stringify({ classroomId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Re-embed failed");
@@ -225,16 +243,16 @@ const EnrollForm = () => {
     }
   };
 
-  const startEdit = (student) => { 
-    setEditing({ ...student, image: null }); 
+  const startEdit = (student) => {
+    setEditing({ ...student, image: null });
     setAddingPhoto(null);
-    setImagePreview(`${API_URL}/uploads/${student.image}?t=${Date.now()}`); 
-    setName(""); 
-    setRollNumber(""); 
-    setImage(null); 
-    setMessage(""); 
-    setError(""); 
-    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    setImagePreview(`${API_URL}/uploads/${student.image}?t=${Date.now()}`);
+    setName("");
+    setRollNumber("");
+    setImage(null);
+    setMessage("");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const startAddPhoto = (student) => {
@@ -246,82 +264,179 @@ const EnrollForm = () => {
     setImage(null);
     setMessage("");
     setError("");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+    <Motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8"
+    >
       <div className="grid xl:grid-cols-12 gap-8">
-        {/* Form */}
+        {/* Enrollment form */}
         <div className="xl:col-span-4">
           <div className="glass-card p-8 sticky top-24 border-t-4 border-t-[var(--border-subtle)]">
             <h2 className="text-xl font-bold text-[var(--text-main)] mb-6 flex items-center gap-2">
               <span className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-                {addingPhoto ? <FiPlus size={14} /> : editing ? <FiEdit2 size={14} /> : <FiUserPlus size={14} />}
+                {addingPhoto ? (
+                  <FiPlus size={14} />
+                ) : editing ? (
+                  <FiEdit2 size={14} />
+                ) : (
+                  <FiUserPlus size={14} />
+                )}
               </span>
-              {addingPhoto ? `Add Photo: ${addingPhoto.name}` : editing ? "Edit Profile" : "New Enrollment"}
+              {addingPhoto
+                ? `Add Photo: ${addingPhoto.name}`
+                : editing
+                  ? "Edit Profile"
+                  : "New Enrollment"}
             </h2>
 
-            <form onSubmit={addingPhoto ? handleAddPhoto : editing ? handleUpdate : handleSubmit} className="space-y-6">
+            <form
+              onSubmit={
+                addingPhoto
+                  ? handleAddPhoto
+                  : editing
+                    ? handleUpdate
+                    : handleSubmit
+              }
+              className="space-y-6"
+            >
               <div className="flex justify-center">
                 <div className="relative group cursor-pointer">
                   <div className="w-28 h-28 rounded-full overflow-hidden bg-[var(--bg-input)] border-4 border-[var(--border-subtle)] shadow-xl flex items-center justify-center transition-all">
                     {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <FiCamera className="text-3xl text-[var(--text-muted)]" />
                     )}
                   </div>
                   <label className="absolute bottom-0 right-0 bg-[var(--border-subtle)] text-[var(--bg-sidebar)] p-2 rounded-full shadow-lg cursor-pointer hover:bg-[var(--text-main)] hover:text-[var(--bg-app)] transition-colors">
                     <FiCamera size={14} />
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" required={!editing && !addingPhoto} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      required={!editing && !addingPhoto}
+                    />
                   </label>
                 </div>
               </div>
 
               {addingPhoto ? (
                 <div className="text-center text-sm text-[var(--text-muted)]">
-                  <p>Current photos: <span className="font-bold text-[var(--text-main)]">{addingPhoto.descriptorCount || 1}</span></p>
-                  <p className="mt-1">Upload a new photo to improve recognition</p>
+                  <p>
+                    Current photos:{" "}
+                    <span className="font-bold text-[var(--text-main)]">
+                      {addingPhoto.descriptorCount || 1}
+                    </span>
+                  </p>
+                  <p className="mt-1">
+                    Upload a new photo to improve recognition
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-[var(--text-muted)] ml-1">Full Name</label>
-                    <input type="text" value={editing ? editing.name : name} onChange={(e) => editing ? setEditing({...editing, name: e.target.value}) : setName(e.target.value)}
-                      className="input-premium w-full mt-1 px-4 py-3" placeholder="John Doe" required />
+                    <label className="text-sm font-bold text-[var(--text-muted)] ml-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editing ? editing.name : name}
+                      onChange={(e) =>
+                        editing
+                          ? setEditing({ ...editing, name: e.target.value })
+                          : setName(e.target.value)
+                      }
+                      className="input-premium w-full mt-1 px-4 py-3"
+                      placeholder="John Doe"
+                      required
+                    />
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-[var(--text-muted)] ml-1">Roll ID</label>
-                    <input type="text" value={editing ? editing.rollNumber : rollNumber} onChange={(e) => editing ? setEditing({...editing, rollNumber: e.target.value}) : setRollNumber(e.target.value)}
-                      className="input-premium w-full mt-1 px-4 py-3" placeholder="CS-001" required />
+                    <label className="text-sm font-bold text-[var(--text-muted)] ml-1">
+                      Roll ID
+                    </label>
+                    <input
+                      type="text"
+                      value={editing ? editing.rollNumber : rollNumber}
+                      onChange={(e) =>
+                        editing
+                          ? setEditing({
+                              ...editing,
+                              rollNumber: e.target.value,
+                            })
+                          : setRollNumber(e.target.value)
+                      }
+                      className="input-premium w-full mt-1 px-4 py-3"
+                      placeholder="CS-001"
+                      required
+                    />
                   </div>
                 </div>
               )}
 
               <div className="pt-2 flex gap-3">
-                {(editing || addingPhoto) && <button type="button" onClick={resetForm} className="px-5 py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] font-bold hover:bg-[var(--bg-app)]">Cancel</button>}
-                <button type="submit" disabled={loading || (addingPhoto && !addingPhoto.image)} className="btn-primary flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-                  {loading ? "Processing..." : addingPhoto ? "Add Photo" : editing ? "Save Changes" : "Enroll Student"}
+                {(editing || addingPhoto) && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="px-5 py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] font-bold hover:bg-[var(--bg-app)]"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading || (addingPhoto && !addingPhoto.image)}
+                  className="btn-primary flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+                >
+                  {loading
+                    ? "Processing..."
+                    : addingPhoto
+                      ? "Add Photo"
+                      : editing
+                        ? "Save Changes"
+                        : "Enroll Student"}
                 </button>
               </div>
-              
-              {message && <div className="p-3 rounded-xl bg-[var(--status-present-bg)] text-[var(--status-present-text)] text-sm font-semibold flex items-center gap-2"><FiCheck /> {message}</div>}
-              {error && <div className="p-3 rounded-xl bg-[var(--status-absent-bg)] text-[var(--status-absent-text)] text-sm font-semibold">{error}</div>}
+
+              {message && (
+                <div className="p-3 rounded-xl bg-[var(--status-present-bg)] text-[var(--status-present-text)] text-sm font-semibold flex items-center gap-2">
+                  <FiCheck /> {message}
+                </div>
+              )}
+              {error && (
+                <div className="p-3 rounded-xl bg-[var(--status-absent-bg)] text-[var(--status-absent-text)] text-sm font-semibold">
+                  {error}
+                </div>
+              )}
             </form>
           </div>
         </div>
 
-        {/* List */}
+        {/* Student list */}
         <div className="xl:col-span-8">
-          {/* Re-embed Controls */}
+          {/* Re-embed controls */}
           {students.length > 0 && (
             <div className="mb-6 p-4 glass-card flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <FiCpu className="text-[var(--color-primary)] text-xl" />
                 <div>
-                  <p className="text-sm font-bold text-[var(--text-main)]">Face Recognition Model</p>
-                  <p className="text-xs text-[var(--text-muted)]">Re-embed all students if recognition isn't working well</p>
+                  <p className="text-sm font-bold text-[var(--text-main)]">
+                    Face Recognition Model
+                  </p>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Re-embed all students if recognition isn't working well
+                  </p>
                 </div>
               </div>
               <button
@@ -344,17 +459,19 @@ const EnrollForm = () => {
             </div>
           )}
 
-          {/* Re-embed Results */}
+          {/* Re-embed results */}
           {reembedResults && (
-            <Motion.div 
-              initial={{ opacity: 0, y: -10 }} 
+            <Motion.div
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 p-4 glass-card border-l-4 border-l-[var(--color-primary)]"
             >
               <div className="flex items-center justify-between mb-2">
-                <p className="font-bold text-[var(--text-main)]">Re-embed Results</p>
-                <button 
-                  onClick={() => setReembedResults(null)} 
+                <p className="font-bold text-[var(--text-main)]">
+                  Re-embed Results
+                </p>
+                <button
+                  onClick={() => setReembedResults(null)}
                   className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
                 >
                   Dismiss
@@ -387,23 +504,63 @@ const EnrollForm = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <AnimatePresence>
                 {students.map((student) => (
-                  <Motion.div key={student._id || student.rollNumber} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="group relative bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl overflow-hidden hover:shadow-lg transition-all">
+                  <Motion.div
+                    key={student._id || student.rollNumber}
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="group relative bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl overflow-hidden hover:shadow-lg transition-all"
+                  >
                     <div className="aspect-[4/3] relative overflow-hidden">
-                      <img src={`${API_URL}/uploads/${student.image}?t=${Date.now()}`} alt={student.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <img
+                        src={`${API_URL}/uploads/${student.image}?t=${Date.now()}`}
+                        alt={student.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                        <button onClick={() => startAddPhoto(student)} title="Add Photo" className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-green-600"><FiPlus size={14} /></button>
-                        <button onClick={() => startEdit(student)} title="Edit" className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-[var(--text-accent)]"><FiEdit2 size={14} /></button>
-                        <button onClick={() => setResetConfirm(student)} title="Reset Photos" className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-orange-600"><FiRefreshCw size={14} /></button>
-                        <button onClick={() => setDeleteConfirm(student)} title="Delete" className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-red-600"><FiTrash2 size={14} /></button>
+                        <button
+                          onClick={() => startAddPhoto(student)}
+                          title="Add Photo"
+                          className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-green-600"
+                        >
+                          <FiPlus size={14} />
+                        </button>
+                        <button
+                          onClick={() => startEdit(student)}
+                          title="Edit"
+                          className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-[var(--text-accent)]"
+                        >
+                          <FiEdit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => setResetConfirm(student)}
+                          title="Reset Photos"
+                          className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-orange-600"
+                        >
+                          <FiRefreshCw size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(student)}
+                          title="Delete"
+                          className="p-2 bg-white/90 rounded-full text-slate-800 hover:text-red-600"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
                       </div>
                     </div>
                     <div className="p-5">
-                      <h3 className="text-[var(--text-main)] font-bold text-lg truncate">{student.name}</h3>
+                      <h3 className="text-[var(--text-main)] font-bold text-lg truncate">
+                        {student.name}
+                      </h3>
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs font-bold text-[var(--text-muted)] bg-[var(--bg-app)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">ID: {student.rollNumber}</span>
-                        <span className="text-xs text-[var(--text-muted)]">{student.descriptorCount || 1} photo(s)</span>
+                        <span className="text-xs font-bold text-[var(--text-muted)] bg-[var(--bg-app)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">
+                          ID: {student.rollNumber}
+                        </span>
+                        <span className="text-xs text-[var(--text-muted)]">
+                          {student.descriptorCount || 1} photo(s)
+                        </span>
                       </div>
                     </div>
                   </Motion.div>
@@ -414,7 +571,7 @@ const EnrollForm = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete confirmation modal */}
       <ConfirmModal
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
@@ -425,7 +582,7 @@ const EnrollForm = () => {
         type="danger"
       />
 
-      {/* Reset Photos Confirmation Modal */}
+      {/* Reset photos confirmation modal */}
       <ConfirmModal
         isOpen={!!resetConfirm}
         onClose={() => setResetConfirm(null)}
@@ -436,7 +593,7 @@ const EnrollForm = () => {
         type="warning"
       />
 
-      {/* Re-embed Confirmation Modal */}
+      {/* Re-embed confirmation modal */}
       <ConfirmModal
         isOpen={reembedConfirm}
         onClose={() => setReembedConfirm(false)}

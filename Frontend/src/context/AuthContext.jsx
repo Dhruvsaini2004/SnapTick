@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
-  // Verify token on mount
+  // Verify stored token on mount
   useEffect(() => {
     async function verifyToken() {
       if (!token) {
@@ -18,14 +18,14 @@ export function AuthProvider({ children }) {
 
       try {
         const res = await fetch(`${API_URL}/auth/verify`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.ok) {
           const data = await res.json();
           setTeacher(data.teacher);
         } else {
-          // Token invalid, clear it
+          // Token invalid: clear local state
           localStorage.removeItem("token");
           setToken(null);
           setTeacher(null);
@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await res.json();
@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ name, email, password }),
     });
 
     const data = await res.json();
@@ -89,18 +89,18 @@ export function AuthProvider({ children }) {
     setTeacher(null);
   }
 
-  // Helper to get auth headers for API calls
+  // Build auth headers for JSON requests
   function getAuthHeaders() {
     return {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     };
   }
 
-  // Helper to get auth header for FormData (no Content-Type, let browser set it)
+  // Build auth headers for FormData (browser sets Content-Type)
   function getAuthHeadersMultipart() {
     return {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     };
   }
 
@@ -113,7 +113,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     getAuthHeaders,
-    getAuthHeadersMultipart
+    getAuthHeadersMultipart,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

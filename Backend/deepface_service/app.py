@@ -1,22 +1,22 @@
 """
-DeepFace Flask Microservice for Face Detection and Recognition
-Runs on port 5001 and provides APIs for:
-- Extracting face embeddings from images
-- Detecting multiple faces in group photos
-- Verifying/matching faces
+DeepFace Flask microservice for face detection and recognition.
+Runs on port 5001 and exposes APIs to:
+- Extract face embeddings
+- Detect multiple faces in group photos
+- Verify or match faces
 
-MODELS USED:
-- Recognition: ArcFace (512-dim embeddings, best accuracy with angular margin loss)
-- Detection: RetinaFace (5-point landmark alignment, handles angles/lighting)
+Models:
+- Recognition: ArcFace (512-dim embeddings, strong angular margin loss)
+- Detection: RetinaFace (5-point landmark alignment, robust to pose/lighting)
 
-NOTE: Students enrolled with older models (Facenet512, face-api.js) must be re-enrolled!
+Note: Students enrolled with older models (Facenet512, face-api.js) must be re-enrolled.
 """
 
 import os
-# Enable GPU and optimize TensorFlow BEFORE importing
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF warnings
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use first GPU
-# Enable deterministic operations for consistent results
+# Configure TensorFlow before importing it.
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Reduce TensorFlow log noise
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Prefer the first GPU
+# Enable deterministic operations for reproducible results
 os.environ["TF_DETERMINISTIC_OPS"] = "1"
 os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
 
@@ -27,10 +27,10 @@ import cv2
 import base64
 import traceback
 
-# Check GPU availability and enable deterministic mode
+# Detect GPU availability and enable deterministic mode
 try:
     import tensorflow as tf
-    # Enable deterministic behavior for reproducible results
+    # Enable deterministic ops for reproducible results
     tf.config.experimental.enable_op_determinism()
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
@@ -46,21 +46,21 @@ except Exception as e:
 app = Flask(__name__)
 
 # =============================================================================
-# MODEL CONFIGURATION - ArcFace + RetinaFace (Industry Standard)
+# Model configuration: ArcFace + RetinaFace
 # =============================================================================
-# ArcFace: Uses Angular Margin Loss for better discrimination between similar faces
-# RetinaFace: 5-point landmark detection for proper face alignment before recognition
+# ArcFace: angular margin loss for stronger identity separation
+# RetinaFace: 5-point landmark alignment for robust detection
 MODEL_NAME = "ArcFace"
 DETECTOR_BACKEND = os.environ.get("DETECTOR_BACKEND", "retinaface")
 DISTANCE_METRIC = "cosine"
 
-# Threshold for ArcFace with cosine distance
-# ArcFace embeddings: same person usually 0.0 - 0.55, different person 0.6+
-# DeepFace default for ArcFace+cosine is 0.68
-# 
-# TUNING: 0.60 gives good balance for most classroom scenarios
-FACE_MATCH_THRESHOLD = 0.60  # Balanced threshold
-FACE_MATCH_GAP = 0.05  # Require clear separation to avoid matching wrong person
+# Threshold guidance for ArcFace + cosine distance.
+# Same person typically falls ~0.0-0.55, different people ~0.60+.
+# DeepFace default for ArcFace+cosine is 0.68.
+#
+# Tuned to 0.60 for a classroom-friendly balance.
+FACE_MATCH_THRESHOLD = 0.60  # Tuned threshold
+FACE_MATCH_GAP = 0.05  # Require separation between top candidates
 
 print(f"DeepFace Service starting with model: {MODEL_NAME}, detector: {DETECTOR_BACKEND}")
 print(f"Thresholds: match <= {FACE_MATCH_THRESHOLD}, max gap >= {FACE_MATCH_GAP}")
@@ -89,14 +89,14 @@ def convert_to_native(obj):
 
 def load_image_from_path(image_path, for_group_photo=False):
     """Load image from file path. For group photos, keep original size for accurate bounding boxes."""
-    # Handle Windows path separators that may come from Node.js
+    # Normalize Windows path separators from Node.js inputs
     image_path = image_path.replace("\\", "/") if image_path else image_path
     
-    # Log the path for debugging
+    # Log the path for troubleshooting
     print(f"[DEBUG] Attempting to load image from: {image_path}")
     
     if not os.path.exists(image_path):
-        # Try to resolve relative paths from the uploads directory
+        # Fallback to uploads directory for relative paths
         uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
         alt_path = os.path.join(uploads_dir, os.path.basename(image_path))
         print(f"[DEBUG] Path not found, trying alternative: {alt_path}")
@@ -110,10 +110,10 @@ def load_image_from_path(image_path, for_group_photo=False):
     if img is None:
         raise ValueError(f"Could not read image: {image_path}")
     
-    # Only resize for single face enrollment, NOT for group photos
+    # Resize only for single-face enrollment; keep group photos full size
     if not for_group_photo:
         h, w = img.shape[:2]
-        max_dim = 800  # Smaller = faster for enrollment
+        max_dim = 800  # Smaller size speeds up enrollment
         if max(h, w) > max_dim:
             scale = max_dim / max(h, w)
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
@@ -129,7 +129,7 @@ def load_image_from_base64(base64_string):
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("Could not decode base64 image")
-    return img  # Return original, preprocess only for detection
+    return img  # Keep original; detection preprocessing happens later
 
 
 def preprocess_for_detection(img):
@@ -138,15 +138,14 @@ def preprocess_for_detection(img):
     original_h, original_w = img.shape[:2]
     scale = 1.0
     
-    # Resize if too large (saves memory and speeds up processing)
-    # Keep larger for group photos to maintain face detail
+    # Resize oversized images to save memory while preserving face detail
     max_dim = 1600
     if max(original_h, original_w) > max_dim:
         scale = max_dim / max(original_h, original_w)
         img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         print(f"[DEBUG] Resized group photo from {original_w}x{original_h} to {img.shape[1]}x{img.shape[0]}")
     
-    # Check if image needs enhancement (low brightness)
+    # Check brightness to decide on enhancement
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     mean_brightness = np.mean(gray)
     std_brightness = np.std(gray)
@@ -155,13 +154,13 @@ def preprocess_for_detection(img):
     
     # Apply CLAHE for dark or low-contrast images
     if mean_brightness < 100 or std_brightness < 40:
-        # Convert to LAB color space for processing
+        # Convert to LAB for contrast enhancement
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         
-        # Adaptive CLAHE based on darkness level
+        # Tune CLAHE strength based on brightness
         if mean_brightness < 60:
-            clip_limit = 4.0  # Very dark - aggressive enhancement
+            clip_limit = 4.0  # Very dark: aggressive enhancement
         elif mean_brightness < 80:
             clip_limit = 3.0  # Dark
         else:
@@ -170,7 +169,7 @@ def preprocess_for_detection(img):
         clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
         l = clahe.apply(l)
         
-        # Merge and convert back
+        # Merge channels and convert back to BGR
         lab = cv2.merge([l, a, b])
         img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
         print(f"[DEBUG] Applied CLAHE with clip_limit={clip_limit} (brightness was {mean_brightness:.1f})")
@@ -184,15 +183,15 @@ def detect_faces_robust(img, model_name, detector_backend):
     Tries different approaches to maximize face detection.
     """
     all_detections = []
-    seen_faces = set()  # Track detected face regions to avoid duplicates
+    seen_faces = set()  # Track regions to avoid duplicates
     
     def face_key(fa):
         """Create a key for deduplicating faces based on position"""
         x, y, w, h = fa.get("x", 0), fa.get("y", 0), fa.get("w", 0), fa.get("h", 0)
-        # Round to nearest 50 pixels to group nearby detections
+        # Round to 50px buckets to group nearby detections
         return (x // 50, y // 50)
     
-    # Strategy 1: Standard detection
+    # Strategy 1: standard detection
     try:
         detections = DeepFace.represent(
             img_path=img,
@@ -210,11 +209,11 @@ def detect_faces_robust(img, model_name, detector_backend):
     except Exception as e:
         print(f"[DEBUG] Strategy 1 failed: {e}")
     
-    # Strategy 2: Try with upscaled image if few faces found and image is large enough
+    # Strategy 2: upscale if few faces are found
     h, w = img.shape[:2]
     if len(all_detections) < 3 and max(h, w) < 1200:
         try:
-            # Upscale by 1.5x to help detect smaller faces
+            # Upscale 1.5x to detect smaller faces
             upscaled = cv2.resize(img, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
             detections = DeepFace.represent(
                 img_path=upscaled,
@@ -279,7 +278,7 @@ def extract_embedding():
         else:
             return jsonify({"error": "Either 'image_path' or 'image_base64' is required"}), 400
 
-        # Extract embedding using DeepFace
+        # Extract embedding with DeepFace
         embeddings = DeepFace.represent(
             img_path=img,
             model_name=MODEL_NAME,
@@ -291,7 +290,7 @@ def extract_embedding():
         if not embeddings or len(embeddings) == 0:
             return jsonify({"error": "No face detected in the image"}), 400
 
-        # Return the first face's embedding
+        # Return the first detected face embedding
         embedding = embeddings[0]["embedding"]
         facial_area = embeddings[0].get("facial_area", {})
 
@@ -330,12 +329,12 @@ def detect_faces():
         else:
             return jsonify({"error": "Either 'image_path' or 'image_base64' is required"}), 400
 
-        # Extract all face embeddings
+        # Extract embeddings for all detected faces
         embeddings = DeepFace.represent(
             img_path=img,
             model_name=MODEL_NAME,
             detector_backend=DETECTOR_BACKEND,
-            enforce_detection=False,  # Don't fail if no faces
+            enforce_detection=False,  # Allow zero faces
             align=True
         )
 
@@ -383,10 +382,10 @@ def match_faces():
         if not enrolled_faces:
             return jsonify({"error": "No enrolled faces provided"}), 400
 
-        # Preprocess image for better detection
+        # Preprocess image to improve detection
         processed_img, scale = preprocess_for_detection(img)
 
-        # Use robust detection with multiple strategies for group photos
+        # Run robust multi-strategy detection for group photos
         detections = detect_faces_robust(processed_img, MODEL_NAME, DETECTOR_BACKEND)
 
         if not detections:
@@ -397,8 +396,8 @@ def match_faces():
                 "message": "No faces detected in the image"
             })
 
-        # Sort detections by position (top-to-bottom, left-to-right) for consistent ordering
-        # This eliminates inconsistency from random detection order
+        # Sort detections by position (top-to-bottom, left-to-right) for stable ordering
+        # This stabilizes output order across runs
         def get_face_position(det):
             fa = det.get("facial_area", {})
             return (fa.get("y", 0), fa.get("x", 0))
@@ -406,13 +405,13 @@ def match_faces():
         detections = sorted(detections, key=get_face_position)
         print(f"[DEBUG] Detected {len(detections)} faces, sorted by position")
         
-        # Log enrolled faces info for debugging
+        # Log enrolled descriptor metadata for diagnostics
         dimension_mismatches = []
         for enrolled in enrolled_faces:
             desc_count = len(enrolled.get("descriptors", []))
             desc_dims = [len(d) for d in enrolled.get("descriptors", [])]
             print(f"[DEBUG] Enrolled: {enrolled['rollNumber']} with {desc_count} descriptors, dims={desc_dims}")
-            # Check for potential dimension mismatches (ArcFace uses 512)
+            # Detect descriptor dimension mismatches (ArcFace uses 512)
             for dim in desc_dims:
                 if dim != 512:
                     dimension_mismatches.append((enrolled['rollNumber'], dim))
@@ -422,17 +421,17 @@ def match_faces():
             print(f"[WARN] These students need to be re-enrolled: {[r[0] for r in dimension_mismatches]}")
             print(f"[WARN] Use POST /enroll/re-embed to update all embeddings with current model")
 
-        # Match each detected face against enrolled faces
+        # Match each detected face against enrolled descriptors
         def find_best_match(embedding, face_index):
             best = {"label": "unknown", "distance": float("inf")}
             second_best = {"label": "unknown", "distance": float("inf")}
             embedding_np = np.array(embedding)
             embedding_dim = len(embedding)
             
-            # Track all candidates for debugging
+            # Track candidates for debugging
             all_candidates = []
             
-            # For each enrolled person, find their BEST (minimum) distance
+            # For each student, keep the minimum distance
             person_distances = {}
 
             for enrolled in enrolled_faces:
@@ -441,13 +440,13 @@ def match_faces():
                 
                 min_distance = float("inf")
                 for desc in descriptors:
-                    # Check for dimension mismatch (e.g., old 128-dim vs new 512-dim)
+                    # Skip dimension mismatches (e.g., 128 vs 512)
                     if len(desc) != embedding_dim:
                         print(f"[WARN] Dimension mismatch for {roll_number}: enrolled={len(desc)}, detected={embedding_dim}")
                         continue
                     
                     desc_np = np.array(desc)
-                    # Cosine similarity -> distance
+                    # Convert cosine similarity to distance
                     cos_sim = np.dot(embedding_np, desc_np) / (np.linalg.norm(embedding_np) * np.linalg.norm(desc_np))
                     distance = 1 - cos_sim
                     
@@ -461,33 +460,33 @@ def match_faces():
             # Sort candidates by distance
             all_candidates.sort(key=lambda x: x["distance"])
             
-            # Get best and second best
+            # Select top two candidates
             if len(all_candidates) >= 1:
                 best = all_candidates[0]
             if len(all_candidates) >= 2:
                 second_best = all_candidates[1]
             
-            # Log top candidates for debugging
+            # Log top candidates
             top_candidates = [(c['label'], round(c['distance'], 3)) for c in all_candidates[:5]]
             print(f"[DEBUG] Face #{face_index} candidates: {top_candidates}")
 
-            # Check if match is confident enough
-            # Key insight: if someone is NOT enrolled, they may still have a "best match"
-            # but the distance will be high AND gap to second-best will be small
+            # Decide whether the best match is confident enough.
+            # Unenrolled faces can still produce a "best match",
+            # but their distance will be high and the gap small.
             gap = second_best["distance"] - best["distance"]
             
-            # Adaptive gap based on confidence level
+            # Adjust required gap based on confidence
             if best["distance"] <= 0.35:
-                # Very confident - definitely the same person
+                # Very confident match
                 required_gap = 0.01
             elif best["distance"] <= 0.45:
                 # Confident match
                 required_gap = 0.02
             elif best["distance"] <= 0.55:
-                # Good match but need some separation
+                # Good match; require moderate separation
                 required_gap = 0.03
             else:
-                # Borderline - require clear separation to avoid false positives
+                # Borderline: require stronger separation to reduce false positives
                 required_gap = FACE_MATCH_GAP
             
             is_match = bool(
@@ -495,7 +494,7 @@ def match_faces():
                 gap >= required_gap
             )
             
-            # Log match details for debugging borderline cases
+            # Log match details for diagnostics
             status = "MATCH" if is_match else "REJECTED"
             reason = ""
             if not is_match:
@@ -518,7 +517,7 @@ def match_faces():
         for i, detection in enumerate(detections):
             embedding = detection["embedding"]
             facial_area = detection.get("facial_area", {})
-            # Scale bounding box back to original image size
+            # Scale bounding box back to original size
             facial_area = scale_facial_area(facial_area, scale)
             match = find_best_match(embedding, i)
 
@@ -528,13 +527,13 @@ def match_faces():
                 "match": match
             })
 
-            # Track best match for each label (to handle duplicates)
+            # Track best match per label to resolve duplicates
             if match["is_match"] and match["label"] != "unknown":
                 label = match["label"]
                 if label not in label_winners or match["distance"] < label_winners[label]["distance"]:
                     label_winners[label] = {"index": i, "distance": match["distance"]}
 
-        # Build final matches list
+        # Build final match list
         matches = []
         for result in results:
             match = result["match"]
@@ -576,7 +575,7 @@ def verify_faces():
     try:
         data = request.get_json()
 
-        # Load first image
+        # Load first image input
         if "image1_path" in data:
             img1 = data["image1_path"]
         elif "image1_base64" in data:
@@ -584,7 +583,7 @@ def verify_faces():
         else:
             return jsonify({"error": "image1_path or image1_base64 required"}), 400
 
-        # Load second image
+        # Load second image input
         if "image2_path" in data:
             img2 = data["image2_path"]
         elif "image2_base64" in data:
@@ -638,7 +637,7 @@ def diagnose_matching():
         if not enrolled_faces:
             return jsonify({"error": "No enrolled faces provided"}), 400
 
-        # Preprocess and detect
+        # Preprocess image and run detection
         processed_img, scale = preprocess_for_detection(img)
         detections = detect_faces_robust(processed_img, MODEL_NAME, DETECTOR_BACKEND)
 
@@ -650,7 +649,7 @@ def diagnose_matching():
                 "recommendations": ["Try a clearer photo with better lighting"]
             })
 
-        # Analyze each face
+        # Analyze each detected face
         face_analyses = []
         
         for i, detection in enumerate(detections):
@@ -660,7 +659,7 @@ def diagnose_matching():
             facial_area = detection.get("facial_area", {})
             facial_area = scale_facial_area(facial_area, scale)
             
-            # Calculate distances to ALL enrolled faces
+            # Compute distances to all enrolled faces
             all_distances = []
             for enrolled in enrolled_faces:
                 roll_number = enrolled["rollNumber"]
@@ -698,7 +697,7 @@ def diagnose_matching():
             if best:
                 gap = (second_best["minDistance"] - best["minDistance"]) if second_best else float("inf")
                 
-                # Apply same logic as matching
+                # Reuse matching gap logic
                 if best["minDistance"] <= 0.35:
                     required_gap = 0.01
                 elif best["minDistance"] <= 0.45:
@@ -731,7 +730,7 @@ def diagnose_matching():
                     "requiredGap": required_gap,
                     "isMatch": is_match,
                     "matchedTo": best["name"] if is_match else "Unknown",
-                    "allCandidates": all_distances[:5],  # Top 5
+                    "allCandidates": all_distances[:5],  # Top 5 candidates
                     "recommendations": recommendations
                 })
             else:
@@ -759,12 +758,12 @@ def diagnose_matching():
 
 
 if __name__ == "__main__":
-    # Pre-load the model on startup
+    # Warm up the model on startup
     print("Pre-loading DeepFace model...")
     try:
-        # Create a dummy image to trigger model loading
+        # Use a dummy image to trigger model loading
         dummy_img = np.zeros((224, 224, 3), dtype=np.uint8)
-        dummy_img[50:174, 50:174] = 128  # Add some content
+        dummy_img[50:174, 50:174] = 128  # Add a simple pattern
         DeepFace.represent(
             img_path=dummy_img,
             model_name=MODEL_NAME,

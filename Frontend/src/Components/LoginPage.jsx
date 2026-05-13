@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { FiMail, FiLock, FiUser, FiArrowLeft, FiMoon, FiSun, FiCamera } from "react-icons/fi";
+import {
+  FiMail,
+  FiLock,
+  FiUser,
+  FiArrowLeft,
+  FiMoon,
+  FiSun,
+  FiCamera,
+} from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage({ isDark, setIsDark }) {
@@ -52,14 +60,14 @@ export default function LoginPage({ isDark, setIsDark }) {
 
   return (
     <div className="min-h-screen flex bg-[var(--bg-app)]">
-      {/* Left Panel - Branding (hidden on mobile) */}
+      {/* Left panel: branding (desktop only) */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--color-primary)]">
         {/* Decorative elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-20 w-80 h-80 bg-black/10 rounded-full blur-3xl" />
         </div>
-        
+
         <div className="relative z-10 flex flex-col justify-between p-12 text-[var(--color-primary-text)]">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
@@ -67,7 +75,7 @@ export default function LoginPage({ isDark, setIsDark }) {
             </div>
             <span className="font-bold text-xl">SnapTick</span>
           </div>
-          
+
           <div>
             <h1 className="text-4xl font-bold mb-4 leading-tight">
               Attendance made
@@ -75,20 +83,18 @@ export default function LoginPage({ isDark, setIsDark }) {
               effortless.
             </h1>
             <p className="text-lg opacity-80 max-w-sm">
-              AI-powered face recognition for modern classrooms. 
-              Save hours every week.
+              AI-powered face recognition for modern classrooms. Save hours
+              every week.
             </p>
           </div>
-          
-          <p className="text-sm opacity-60">
-            Trusted by educators worldwide
-          </p>
+
+          <p className="text-sm opacity-60">Trusted by educators worldwide</p>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
+      {/* Right panel: auth form */}
       <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
+        {/* Top bar */}
         <div className="flex items-center justify-between p-4 sm:p-6">
           <Link
             to="/"
@@ -97,7 +103,7 @@ export default function LoginPage({ isDark, setIsDark }) {
             <FiArrowLeft size={16} />
             <span className="hidden sm:inline">Back</span>
           </Link>
-          
+
           <button
             onClick={() => setIsDark(!isDark)}
             className="p-2.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card)] transition-all"
@@ -106,7 +112,7 @@ export default function LoginPage({ isDark, setIsDark }) {
           </button>
         </div>
 
-        {/* Form Container */}
+        {/* Form container */}
         <div className="flex-1 flex items-center justify-center p-6">
           <Motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -114,27 +120,29 @@ export default function LoginPage({ isDark, setIsDark }) {
             transition={{ duration: 0.5 }}
             className="w-full max-w-sm"
           >
-            {/* Mobile Logo */}
+            {/* Mobile logo */}
             <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
               <div className="h-10 w-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center">
                 <FiCamera className="text-xl text-[var(--color-primary-text)]" />
               </div>
-              <span className="font-bold text-xl text-[var(--text-main)]">SnapTick</span>
+              <span className="font-bold text-xl text-[var(--text-main)]">
+                SnapTick
+              </span>
             </div>
 
-            {/* Header */}
+            {/* Form header */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-[var(--text-main)] mb-2">
                 {isLogin ? "Welcome back" : "Create your account"}
               </h2>
               <p className="text-[var(--text-muted)]">
-                {isLogin 
-                  ? "Enter your credentials to access your dashboard" 
+                {isLogin
+                  ? "Enter your credentials to access your dashboard"
                   : "Start tracking attendance in minutes"}
               </p>
             </div>
 
-            {/* Error Message */}
+            {/* Error message */}
             {error && (
               <Motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -145,7 +153,7 @@ export default function LoginPage({ isDark, setIsDark }) {
               </Motion.div>
             )}
 
-            {/* Form */}
+            {/* Auth form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {!isLogin && (
                 <Motion.div
@@ -212,13 +220,15 @@ export default function LoginPage({ isDark, setIsDark }) {
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-[var(--color-primary-text)]/30 border-t-[var(--color-primary-text)] rounded-full animate-spin" />
+                ) : isLogin ? (
+                  "Sign in"
                 ) : (
-                  isLogin ? "Sign in" : "Create account"
+                  "Create account"
                 )}
               </button>
             </form>
 
-            {/* Toggle */}
+            {/* Mode toggle */}
             <p className="mt-6 text-center text-sm text-[var(--text-muted)]">
               {isLogin ? "Don't have an account?" : "Already have an account?"}
               <button

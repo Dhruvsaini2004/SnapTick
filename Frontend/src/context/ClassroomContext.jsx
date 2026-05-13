@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useAuth } from "./AuthContext";
 import API_URL from "../config/api";
 
@@ -11,7 +17,7 @@ export function ClassroomProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch classrooms when authenticated
+  // Fetch classrooms after authentication
   const fetchClassrooms = useCallback(async () => {
     if (!isAuthenticated) return;
 
@@ -20,7 +26,7 @@ export function ClassroomProvider({ children }) {
 
     try {
       const res = await fetch(`${API_URL}/classroom`, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) {
@@ -31,19 +37,19 @@ export function ClassroomProvider({ children }) {
       const data = await res.json();
       setClassrooms(data);
 
-      // If there's a stored active classroom, try to restore it
+      // Restore stored active classroom if available
       const storedId = localStorage.getItem("activeClassroomId");
       if (storedId) {
-        const found = data.find(c => c._id === storedId);
+        const found = data.find((c) => c._id === storedId);
         if (found) {
           setActiveClassroom(found);
         } else if (data.length > 0) {
-          // Stored classroom not found, use first available
+          // Stored classroom missing; fall back to first
           setActiveClassroom(data[0]);
           localStorage.setItem("activeClassroomId", data[0]._id);
         }
       } else if (data.length > 0 && !activeClassroom) {
-        // No stored classroom, use first available
+        // No stored classroom; use first available
         setActiveClassroom(data[0]);
         localStorage.setItem("activeClassroomId", data[0]._id);
       }
@@ -69,12 +75,12 @@ export function ClassroomProvider({ children }) {
     }
   }, []);
 
-  // Create a new classroom
+  // Create classroom
   async function createClassroom(name, description = "") {
     const res = await fetch(`${API_URL}/classroom`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name, description })
+      body: JSON.stringify({ name, description }),
     });
 
     const data = await res.json();
@@ -83,10 +89,10 @@ export function ClassroomProvider({ children }) {
       throw new Error(data.error || "Failed to create classroom");
     }
 
-    // Add to local state
-    setClassrooms(prev => [data.classroom, ...prev]);
-    
-    // Set as active if it's the first one
+    // Update local state
+    setClassrooms((prev) => [data.classroom, ...prev]);
+
+    // Set active if this is the first classroom
     if (classrooms.length === 0) {
       selectClassroom(data.classroom);
     }
@@ -94,12 +100,12 @@ export function ClassroomProvider({ children }) {
     return data.classroom;
   }
 
-  // Update a classroom
+  // Update classroom
   async function updateClassroom(id, name, description = "") {
     const res = await fetch(`${API_URL}/classroom/${id}`, {
       method: "PUT",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name, description })
+      body: JSON.stringify({ name, description }),
     });
 
     const data = await res.json();
@@ -109,9 +115,11 @@ export function ClassroomProvider({ children }) {
     }
 
     // Update local state
-    setClassrooms(prev => prev.map(c => c._id === id ? data.classroom : c));
+    setClassrooms((prev) =>
+      prev.map((c) => (c._id === id ? data.classroom : c)),
+    );
 
-    // Update active if it was the active one
+    // Update active if it matches
     if (activeClassroom?._id === id) {
       setActiveClassroom(data.classroom);
     }
@@ -119,11 +127,11 @@ export function ClassroomProvider({ children }) {
     return data.classroom;
   }
 
-  // Delete a classroom
+  // Delete classroom
   async function deleteClassroom(id) {
     const res = await fetch(`${API_URL}/classroom/${id}`, {
       method: "DELETE",
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
 
     const data = await res.json();
@@ -133,11 +141,11 @@ export function ClassroomProvider({ children }) {
     }
 
     // Remove from local state
-    setClassrooms(prev => prev.filter(c => c._id !== id));
+    setClassrooms((prev) => prev.filter((c) => c._id !== id));
 
-    // Clear active if it was the deleted one
+    // Clear active if it was deleted
     if (activeClassroom?._id === id) {
-      const remaining = classrooms.filter(c => c._id !== id);
+      const remaining = classrooms.filter((c) => c._id !== id);
       if (remaining.length > 0) {
         selectClassroom(remaining[0]);
       } else {
@@ -148,43 +156,61 @@ export function ClassroomProvider({ children }) {
     return data;
   }
 
-  // Update student count for a specific classroom (called after student add/delete)
-  const updateStudentCount = useCallback((classroomId, delta) => {
-    setClassrooms(prev => prev.map(c => {
-      if (c._id === classroomId) {
-        return { ...c, studentCount: Math.max(0, (c.studentCount || 0) + delta) };
+  // Adjust student count after add/delete
+  const updateStudentCount = useCallback(
+    (classroomId, delta) => {
+      setClassrooms((prev) =>
+        prev.map((c) => {
+          if (c._id === classroomId) {
+            return {
+              ...c,
+              studentCount: Math.max(0, (c.studentCount || 0) + delta),
+            };
+          }
+          return c;
+        }),
+      );
+
+      // Update activeClassroom if it matches
+      if (activeClassroom?._id === classroomId) {
+        setActiveClassroom((prev) => ({
+          ...prev,
+          studentCount: Math.max(0, (prev.studentCount || 0) + delta),
+        }));
       }
-      return c;
-    }));
+    },
+    [activeClassroom],
+  );
 
-    // Also update activeClassroom if it matches
-    if (activeClassroom?._id === classroomId) {
-      setActiveClassroom(prev => ({
-        ...prev,
-        studentCount: Math.max(0, (prev.studentCount || 0) + delta)
-      }));
-    }
-  }, [activeClassroom]);
-
-  // Refresh student count for a classroom from the server
-  const refreshClassroomCount = useCallback(async (classroomId) => {
-    try {
-      const res = await fetch(`${API_URL}/classroom/${classroomId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setClassrooms(prev => prev.map(c => 
-          c._id === classroomId ? { ...c, studentCount: data.studentCount } : c
-        ));
-        if (activeClassroom?._id === classroomId) {
-          setActiveClassroom(prev => ({ ...prev, studentCount: data.studentCount }));
+  // Refresh student count from server
+  const refreshClassroomCount = useCallback(
+    async (classroomId) => {
+      try {
+        const res = await fetch(`${API_URL}/classroom/${classroomId}`, {
+          headers: getAuthHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setClassrooms((prev) =>
+            prev.map((c) =>
+              c._id === classroomId
+                ? { ...c, studentCount: data.studentCount }
+                : c,
+            ),
+          );
+          if (activeClassroom?._id === classroomId) {
+            setActiveClassroom((prev) => ({
+              ...prev,
+              studentCount: data.studentCount,
+            }));
+          }
         }
+      } catch (err) {
+        console.error("Failed to refresh classroom count:", err);
       }
-    } catch (err) {
-      console.error("Failed to refresh classroom count:", err);
-    }
-  }, [getAuthHeaders, activeClassroom]);
+    },
+    [getAuthHeaders, activeClassroom],
+  );
 
   const value = {
     classrooms,
@@ -197,7 +223,7 @@ export function ClassroomProvider({ children }) {
     updateClassroom,
     deleteClassroom,
     updateStudentCount,
-    refreshClassroomCount
+    refreshClassroomCount,
   };
 
   return (

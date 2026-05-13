@@ -1,4 +1,4 @@
-// backend/routes/enroll.js
+// Routes: enroll
 const express = require("express");
 const multer = require("multer");
 const Student = require("../models/student");
@@ -19,15 +19,15 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 const storage = multer.diskStorage({
-   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 
-// File size limit constant
+// Max upload size
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// Maximum number of training samples (embeddings) per student
-// This prevents database bloat and keeps matching efficient
+// Max training samples per student
+// Prevents database bloat and keeps matching efficient
 const MAX_TRAINING_SAMPLES = 10;
 
 const upload = multer({
@@ -41,7 +41,7 @@ const upload = multer({
   },
 });
 
-// Helper to validate MongoDB ObjectId
+// Validate MongoDB ObjectId
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
@@ -49,30 +49,30 @@ function isValidObjectId(id) {
 // DeepFace service URL
 const DEEPFACE_SERVICE_URL = process.env.DEEPFACE_URL || "http://localhost:5001";
 
-// Check if DeepFace is remote (not localhost) - requires base64 images
+// Detect remote DeepFace service (requires base64 images)
 const isRemoteDeepFace = !DEEPFACE_SERVICE_URL.includes("localhost") && !DEEPFACE_SERVICE_URL.includes("127.0.0.1");
 
 /**
- * Call DeepFace service to extract face embedding from an image
- * Supports both local (file path) and remote (base64) modes
+ * Extract a face embedding via DeepFace.
+ * Supports both local (file path) and remote (base64) modes.
  * @param {string} imagePath - Absolute path to the image file
  * @returns {Promise<{embedding: number[], facial_area: object}>}
  */
 async function extractFaceEmbedding(imagePath) {
-  // Ensure we have an absolute path
+  // Ensure absolute path
   const absolutePath = path.isAbsolute(imagePath) ? imagePath : path.join(UPLOADS_DIR, imagePath);
-  
+
   console.log(`[DeepFace] Processing image: ${absolutePath} (remote: ${isRemoteDeepFace})`);
-  
-  // Create abort controller for timeout (60 seconds for face processing)
+
+  // Abort after 60 seconds to avoid hanging face processing
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
-  
+
   try {
     let requestBody;
-    
+
     if (isRemoteDeepFace) {
-      // Remote service: send base64 encoded image
+      // Remote service: send base64 image
       const imageBuffer = fs.readFileSync(absolutePath);
       const base64Image = imageBuffer.toString('base64');
       requestBody = JSON.stringify({ image_base64: base64Image });
@@ -80,7 +80,7 @@ async function extractFaceEmbedding(imagePath) {
       // Local service: send file path
       requestBody = JSON.stringify({ image_path: absolutePath });
     }
-    
+
     const response = await fetch(`${DEEPFACE_SERVICE_URL}/extract-embedding`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -109,7 +109,7 @@ async function extractFaceEmbedding(imagePath) {
 console.log("DeepFace enrollment route initialized (using service at " + DEEPFACE_SERVICE_URL + ")");
 
 /**
- * Verify that the classroom exists and belongs to the teacher
+ * Validate classroom ownership.
  */
 async function verifyClassroom(classroomId, teacherId) {
   if (!classroomId) {
@@ -129,9 +129,9 @@ async function verifyClassroom(classroomId, teacherId) {
 }
 
 
-// route: POST /enroll (CREATE) - Requires authentication
+// POST /enroll - create student (auth required)
 router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
- try {
+  try {
     console.log("[Enroll] Request received");
     const { name, rollNumber, classroomId } = req.body;
     const teacherId = req.teacher.id;
@@ -141,7 +141,7 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "name and rollNumber are required" });
     }
 
-    // Verify classroom
+    // Validate classroom
     console.log("[Enroll] Verifying classroom...");
     const classroomCheck = await verifyClassroom(classroomId, teacherId);
     if (!classroomCheck.valid) {
@@ -152,21 +152,21 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
     }
     console.log("[Enroll] Classroom verified");
 
-    const imagePath = req.file ? req.file.path : ""; 
+    const imagePath = req.file ? req.file.path : "";
     console.log(`[Enroll] Image path: ${imagePath}`);
     if (!imagePath) return res.status(400).json({ error: "Image file is required" });
 
-    // req.file.path is already absolute since we use UPLOADS_DIR
+    // req.file.path is already absolute (UPLOADS_DIR)
     const absoluteImagePath = imagePath;
-    
-    // Check if student with same roll number exists for this classroom
+
+    // Check for duplicate roll number in this classroom
     const existingStudent = await Student.findOne({ rollNumber, classroomId });
     if (existingStudent) {
       if (fs.existsSync(absoluteImagePath)) fs.unlinkSync(absoluteImagePath);
       return res.status(409).json({ error: "Roll number already exists in this classroom" });
     }
 
-    // Use DeepFace service to extract face embedding
+    // Use DeepFace to extract face embedding
     console.log("[Enroll] Calling DeepFace service...");
     let faceData;
     try {
@@ -180,17 +180,17 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
 
     const descriptor = faceData.embedding;
 
-    const student = new Student({ 
-        name, 
-        rollNumber, 
-        image: req.file.filename,
-        faceDescriptors: [descriptor],
-        faceDescriptor: descriptor,
-        descriptorCount: 1,
-        teacherId,
-        classroomId
+    const student = new Student({
+      name,
+      rollNumber,
+      image: req.file.filename,
+      faceDescriptors: [descriptor],
+      faceDescriptor: descriptor,
+      descriptorCount: 1,
+      teacherId,
+      classroomId
     });
-    
+
     await student.save();
     res.status(201).json({ message: "Student enrolled successfully!", student });
   } catch (error) {
@@ -207,9 +207,9 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
 });
 
 
-// route: PUT /enroll/:id (UPDATE) - Requires authentication
+// PUT /enroll/:id - update student (auth required)
 router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
-   try {
+  try {
     const { id } = req.params;
     const { name, rollNumber } = req.body;
     const teacherId = req.teacher.id;
@@ -223,10 +223,10 @@ router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
 
     const student = await Student.findById(id);
     if (!student) {
-        return res.status(404).json({ error: "Student not found" });
+      return res.status(404).json({ error: "Student not found" });
     }
 
-    // Verify teacher owns this student
+    // Validate teacher ownership
     if (student.teacherId.toString() !== teacherId) {
       if (req.file && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
@@ -234,7 +234,7 @@ router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
       return res.status(403).json({ error: "You can only update your own students" });
     }
 
-    // Check for duplicate roll number in the same classroom
+    // Check for duplicate roll number in classroom
     const existingStudent = await Student.findOne({
       rollNumber,
       classroomId: student.classroomId,
@@ -251,12 +251,12 @@ router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
 
     if (req.file) {
       const imagePath = req.file.path;
-      student.image = req.file.filename; 
+      student.image = req.file.filename;
 
-      // req.file.path is already absolute since we use UPLOADS_DIR
+      // req.file.path is already absolute (UPLOADS_DIR)
       const absoluteImagePath = imagePath;
 
-      // Use DeepFace service to extract face embedding
+      // Use DeepFace to extract face embedding
       let faceData;
       try {
         faceData = await extractFaceEmbedding(absoluteImagePath);
@@ -264,13 +264,13 @@ router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
         if (fs.existsSync(absoluteImagePath)) fs.unlinkSync(absoluteImagePath);
         return res.status(400).json({ error: error.message || "No face detected in the new image." });
       }
-      
+
       const newDescriptor = faceData.embedding;
 
       if (!student.faceDescriptors || student.faceDescriptors.length === 0) {
         student.faceDescriptors = [newDescriptor];
       } else if (student.faceDescriptors.length >= MAX_TRAINING_SAMPLES) {
-        // At limit - replace oldest descriptor with new one (FIFO)
+        // At limit: replace oldest descriptor (FIFO)
         student.faceDescriptors = [...student.faceDescriptors.slice(1), newDescriptor];
         console.log(`[Update] ${student.rollNumber} at max samples (${MAX_TRAINING_SAMPLES}), replaced oldest`);
       } else {
@@ -279,7 +279,7 @@ router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
 
       student.faceDescriptor = newDescriptor;
       student.descriptorCount = student.faceDescriptors.length;
-     }
+    }
 
     const updatedStudent = await student.save();
     res.status(200).json({ message: "Student updated successfully (new photo added)", student: updatedStudent });
@@ -297,7 +297,7 @@ router.put("/:id", authMiddleware, upload.single("image"), async (req, res) => {
 });
 
 
-// route: GET /enroll - Get students for the logged-in teacher (optionally filtered by classroomId)
+// GET /enroll - list students (optional classroomId)
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const teacherId = req.teacher.id;
@@ -316,7 +316,7 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// route: GET /enroll/descriptors - Get descriptors for teacher's students (optionally filtered by classroomId)
+// GET /enroll/descriptors - list face descriptors (optional classroomId)
 router.get("/descriptors", authMiddleware, async (req, res) => {
   try {
     const teacherId = req.teacher.id;
@@ -346,7 +346,7 @@ router.get("/descriptors", authMiddleware, async (req, res) => {
   }
 });
 
-// route: POST /enroll/:id/add-photo - Add more photos for better recognition
+// POST /enroll/:id/add-photo - add training photo
 router.post("/:id/add-photo", authMiddleware, upload.single("image"), async (req, res) => {
   try {
     const { id } = req.params;
@@ -364,7 +364,7 @@ router.post("/:id/add-photo", authMiddleware, upload.single("image"), async (req
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // Verify teacher owns this student
+    // Validate teacher ownership
     if (student.teacherId.toString() !== teacherId) {
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
@@ -373,10 +373,10 @@ router.post("/:id/add-photo", authMiddleware, upload.single("image"), async (req
     }
 
     const imagePath = req.file.path;
-    // req.file.path is already absolute since we use UPLOADS_DIR
+    // req.file.path is already absolute (UPLOADS_DIR)
     const absoluteImagePath = imagePath;
 
-    // Use DeepFace service to extract face embedding
+    // Use DeepFace to extract face embedding
     let faceData;
     try {
       faceData = await extractFaceEmbedding(absoluteImagePath);
@@ -387,18 +387,18 @@ router.post("/:id/add-photo", authMiddleware, upload.single("image"), async (req
 
     const newDescriptor = faceData.embedding;
 
-    // Check if at training sample limit
+    // Enforce training sample limit
     const currentCount = student.faceDescriptors?.length || 0;
     if (currentCount >= MAX_TRAINING_SAMPLES) {
       if (fs.existsSync(absoluteImagePath)) fs.unlinkSync(absoluteImagePath);
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: `Maximum of ${MAX_TRAINING_SAMPLES} photos reached. Use "Reset Photos" to start fresh.`,
         photoCount: currentCount,
         maxPhotos: MAX_TRAINING_SAMPLES
       });
     }
 
-    // Add new descriptor to the array
+    // Append new descriptor
     if (!student.faceDescriptors || student.faceDescriptors.length === 0) {
       student.faceDescriptors = [newDescriptor];
     } else {
@@ -428,24 +428,24 @@ router.post("/:id/add-photo", authMiddleware, upload.single("image"), async (req
 });
 
 
-// route: DELETE /enroll/:id - Delete student
+// DELETE /enroll/:id - delete student
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const teacherId = req.teacher.id;
-    
+
     const student = await Student.findById(id);
-    
+
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // Verify teacher owns this student
+    // Validate teacher ownership
     if (student.teacherId.toString() !== teacherId) {
       return res.status(403).json({ error: "You can only delete your own students" });
     }
 
-    // Delete the student's image file if it exists
+    // Delete student image file if it exists
     if (student.image) {
       const imagePath = path.join(__dirname, '../uploads', student.image);
       if (fs.existsSync(imagePath)) {
@@ -462,19 +462,19 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// route: DELETE /enroll/:id/reset-photos - Reset all photos, keep only the latest
+// DELETE /enroll/:id/reset-photos - keep only latest photo
 router.delete("/:id/reset-photos", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const teacherId = req.teacher.id;
-    
+
     const student = await Student.findById(id);
 
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // Verify teacher owns this student
+    // Validate teacher ownership
     if (student.teacherId.toString() !== teacherId) {
       return res.status(403).json({ error: "You can only reset photos for your own students" });
     }
@@ -483,7 +483,7 @@ router.delete("/:id/reset-photos", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Student has no photos to reset" });
     }
 
-    // Keep only the last descriptor
+    // Keep only the latest descriptor
     const lastDescriptor = student.faceDescriptors[student.faceDescriptors.length - 1];
     student.faceDescriptors = [lastDescriptor];
     student.faceDescriptor = lastDescriptor;
@@ -504,8 +504,8 @@ router.delete("/:id/reset-photos", authMiddleware, async (req, res) => {
 });
 
 
-// route: POST /enroll/re-embed - Re-process all student photos with current model (ArcFace)
-// Use this after switching recognition models to update all embeddings
+// POST /enroll/re-embed - reprocess all student photos with current model (ArcFace)
+// Use after switching models to refresh embeddings
 router.post("/re-embed", authMiddleware, async (req, res) => {
   try {
     const teacherId = req.teacher.id;
@@ -518,7 +518,7 @@ router.post("/re-embed", authMiddleware, async (req, res) => {
     }
 
     const students = await Student.find(query);
-    
+
     if (students.length === 0) {
       return res.status(404).json({ error: "No students found" });
     }
@@ -534,7 +534,7 @@ router.post("/re-embed", authMiddleware, async (req, res) => {
     console.log(`[Re-embed] Processing ${students.length} students with new model...`);
 
     for (const student of students) {
-      // Check if student has an image
+      // Skip if student lacks an image
       if (!student.image) {
         results.skipped++;
         results.details.push({
@@ -547,8 +547,8 @@ router.post("/re-embed", authMiddleware, async (req, res) => {
       }
 
       const imagePath = path.join(UPLOADS_DIR, student.image);
-      
-      // Check if image file exists
+
+      // Skip if image file is missing
       if (!fs.existsSync(imagePath)) {
         results.skipped++;
         results.details.push({
@@ -561,7 +561,7 @@ router.post("/re-embed", authMiddleware, async (req, res) => {
       }
 
       try {
-        // Extract new embedding using current model (ArcFace)
+        // Extract new embedding with current model (ArcFace)
         console.log(`[Re-embed] Processing ${student.rollNumber}: ${student.name}...`);
         const faceData = await extractFaceEmbedding(imagePath);
         const newDescriptor = faceData.embedding;

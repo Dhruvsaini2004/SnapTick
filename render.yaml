@@ -1,15 +1,15 @@
-# Render Blueprint - SnapTick Attendance System
+# Render Blueprint for SnapTick Attendance
 # Deploy all services with one click: https://render.com/docs/blueprint-spec
 #
-# IMPORTANT: The DeepFace service requires significant RAM for TensorFlow + ArcFace model
-# Free tier (512MB) will NOT work for DeepFace. Options:
-#   1. Use Render Starter ($7/month) for deepface-service
-#   2. Run DeepFace locally and use Render only for frontend + backend
-#   3. Use a different cloud provider for DeepFace (e.g., Railway, Google Cloud Run)
+# Note: DeepFace requires more RAM for TensorFlow + ArcFace.
+# Render free tier (512MB) is insufficient. Options:
+#   1) Use Render Starter ($7/month) for deepface-service
+#   2) Run DeepFace locally and use Render for frontend + backend
+#   3) Use another provider for DeepFace (e.g., Railway, Google Cloud Run)
 
 services:
   # =============================================================================
-  # FRONTEND - React Static Site (FREE)
+  # Frontend: React static site (free tier)
   # =============================================================================
   - type: web
     name: snaptick-frontend
@@ -30,10 +30,10 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false # Set this manually to your backend URL
+        sync: false # Set manually to your backend URL
 
   # =============================================================================
-  # BACKEND - Node.js Express API (FREE tier works but may sleep after 15min)
+  # Backend: Node.js Express API (free tier may sleep after 15 min)
   # =============================================================================
   - type: web
     name: snaptick-backend
@@ -48,24 +48,24 @@ services:
       - key: PORT
         value: 5000
       - key: MONGO_URI
-        sync: false # Set manually - your MongoDB Atlas connection string
+        sync: false # Set manually: MongoDB Atlas connection string
       - key: JWT_SECRET
-        sync: false # Set manually - generate a strong random string
+        sync: false # Set manually: generate a strong random string
       - key: BASE_URL
-        sync: false # Set manually - e.g., https://snaptick-backend.onrender.com
+        sync: false # Set manually: e.g., https://snaptick-backend.onrender.com
       - key: ALLOWED_ORIGINS
-        sync: false # Set manually - e.g., https://snaptick-frontend.onrender.com
+        sync: false # Set manually: e.g., https://snaptick-frontend.onrender.com
       - key: DEEPFACE_URL
-        sync: false # Set manually - URL of your DeepFace service
+        sync: false # Set manually: URL of your DeepFace service
     disk:
       name: uploads
       mountPath: /opt/render/project/src/Backend/uploads
       sizeGB: 1
 
   # =============================================================================
-  # DEEPFACE SERVICE - Python Flask with TensorFlow (REQUIRES PAID TIER - 1GB+ RAM)
+  # DeepFace service: Python Flask + TensorFlow (paid tier, 1GB+ RAM)
   # =============================================================================
-  # Uncomment below if using paid tier, otherwise run locally or on Railway
+  # Uncomment below for paid tier, otherwise run locally or on Railway
   #
   # - type: web
   #   name: snaptick-deepface
@@ -73,7 +73,7 @@ services:
   #   dockerfilePath: Backend/deepface_service/Dockerfile
   #   dockerContext: Backend/deepface_service
   #   healthCheckPath: /health
-  #   plan: starter # Minimum plan for TensorFlow - $7/month
+  #   plan: starter # Minimum plan for TensorFlow ($7/month)
   #   envVars:
   #     - key: TF_CPP_MIN_LOG_LEVEL
   #       value: "2"

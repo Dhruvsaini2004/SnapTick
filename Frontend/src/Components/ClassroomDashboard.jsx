@@ -1,21 +1,27 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { 
-  FiPlus, FiUsers, FiEdit2, FiTrash2, FiX, 
-  FiFolder, FiChevronRight, FiCalendar
+import {
+  FiPlus,
+  FiUsers,
+  FiEdit2,
+  FiTrash2,
+  FiX,
+  FiFolder,
+  FiChevronRight,
+  FiCalendar,
 } from "react-icons/fi";
 import { useClassroom } from "../context/ClassroomContext";
 
 export default function ClassroomDashboard() {
   const navigate = useNavigate();
-  const { 
-    classrooms, 
-    loading, 
-    createClassroom, 
-    updateClassroom, 
+  const {
+    classrooms,
+    loading,
+    createClassroom,
+    updateClassroom,
     deleteClassroom,
-    selectClassroom 
+    selectClassroom,
   } = useClassroom();
 
   const [showModal, setShowModal] = useState(false);
@@ -35,7 +41,10 @@ export default function ClassroomDashboard() {
   const openEditModal = (classroom, e) => {
     e.stopPropagation();
     setEditingClassroom(classroom);
-    setFormData({ name: classroom.name, description: classroom.description || "" });
+    setFormData({
+      name: classroom.name,
+      description: classroom.description || "",
+    });
     setFormError("");
     setShowModal(true);
   };
@@ -54,7 +63,11 @@ export default function ClassroomDashboard() {
 
     try {
       if (editingClassroom) {
-        await updateClassroom(editingClassroom._id, formData.name, formData.description);
+        await updateClassroom(
+          editingClassroom._id,
+          formData.name,
+          formData.description,
+        );
       } else {
         await createClassroom(formData.name, formData.description);
       }
@@ -94,11 +107,15 @@ export default function ClassroomDashboard() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Header */}
+      {/* Page header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-main)]">My Classrooms</h1>
-          <p className="text-[var(--text-muted)] mt-1">Manage your classes and track attendance</p>
+          <h1 className="text-2xl font-bold text-[var(--text-main)]">
+            My Classrooms
+          </h1>
+          <p className="text-[var(--text-muted)] mt-1">
+            Manage your classes and track attendance
+          </p>
         </div>
         <button
           onClick={openCreateModal}
@@ -108,7 +125,7 @@ export default function ClassroomDashboard() {
         </button>
       </div>
 
-      {/* Empty State */}
+      {/* Empty state */}
       {classrooms.length === 0 ? (
         <Motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -122,7 +139,8 @@ export default function ClassroomDashboard() {
             No classrooms yet
           </h3>
           <p className="text-[var(--text-muted)] mb-6 max-w-md mx-auto">
-            Create your first classroom to start enrolling students and tracking attendance.
+            Create your first classroom to start enrolling students and tracking
+            attendance.
           </p>
           <button
             onClick={openCreateModal}
@@ -132,7 +150,7 @@ export default function ClassroomDashboard() {
           </button>
         </Motion.div>
       ) : (
-        /* Classroom Grid */
+        /* Classroom grid */
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {classrooms.map((classroom, index) => (
             <Motion.div
@@ -187,7 +205,7 @@ export default function ClassroomDashboard() {
             </Motion.div>
           ))}
 
-          {/* Add Classroom Card */}
+          {/* Add classroom card */}
           <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -201,7 +219,7 @@ export default function ClassroomDashboard() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
+      {/* Create/edit modal */}
       <AnimatePresence>
         {showModal && (
           <Motion.div
@@ -244,7 +262,9 @@ export default function ClassroomDashboard() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="e.g., Class 10A - Mathematics"
                     className="input-premium w-full px-4 py-3"
                     required
@@ -257,7 +277,9 @@ export default function ClassroomDashboard() {
                   </label>
                   <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Add a brief description..."
                     rows={3}
                     className="input-premium w-full px-4 py-3 resize-none"
@@ -292,7 +314,7 @@ export default function ClassroomDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete confirmation modal */}
       <AnimatePresence>
         {deleteConfirm && (
           <Motion.div
@@ -316,7 +338,8 @@ export default function ClassroomDashboard() {
                 Delete Classroom?
               </h3>
               <p className="text-[var(--text-muted)] text-sm mb-6">
-                This will permanently delete "{deleteConfirm.name}" and all its students and attendance records. This action cannot be undone.
+                This will permanently delete "{deleteConfirm.name}" and all its
+                students and attendance records. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button

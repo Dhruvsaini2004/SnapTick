@@ -10,7 +10,7 @@ const connectDB = async () => {
       throw new Error("MONGO_URI is not defined in .env file");
     }
 
-    await mongoose.connect(uri); // no deprecated options
+    await mongoose.connect(uri); // Defaults are compatible with current Mongoose versions
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);

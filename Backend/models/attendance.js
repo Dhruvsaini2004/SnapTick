@@ -1,4 +1,4 @@
-// Backend/models/attendance.js
+// Model: Attendance
 const mongoose = require("mongoose");
 
 const attendanceSchema = new mongoose.Schema({
@@ -9,7 +9,7 @@ const attendanceSchema = new mongoose.Schema({
     teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", required: true },
 });
 
-// Unique: one attendance record per student per classroom per day
+// Enforce one attendance record per student per classroom per day
 attendanceSchema.index({ rollNo: 1, classroomId: 1, teacherId: 1, date: 1 }, { unique: true });
 
 module.exports = mongoose.model("Attendance", attendanceSchema);

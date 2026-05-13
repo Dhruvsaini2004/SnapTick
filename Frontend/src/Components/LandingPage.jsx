@@ -1,22 +1,30 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { 
-  FiCamera, FiUsers, FiClock, FiShield, 
-  FiArrowRight, FiMoon, FiSun, FiCheck,
-  FiZap, FiLayers, FiBarChart2
+import {
+  FiCamera,
+  FiUsers,
+  FiClock,
+  FiShield,
+  FiArrowRight,
+  FiMoon,
+  FiSun,
+  FiCheck,
+  FiZap,
+  FiLayers,
+  FiBarChart2,
 } from "react-icons/fi";
 
 export default function LandingPage({ isDark, setIsDark }) {
   return (
     <div className="min-h-screen bg-[var(--bg-app)] overflow-hidden">
-      {/* Subtle gradient background */}
+      {/* Ambient gradient background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--color-primary)]/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[var(--color-primary)]/3 rounded-full blur-3xl" />
       </div>
 
-      {/* Navigation */}
+      {/* Top navigation */}
       <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-[var(--bg-app)]/80 border-b border-[var(--border-subtle)]/50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
@@ -24,7 +32,9 @@ export default function LandingPage({ isDark, setIsDark }) {
               <div className="h-9 w-9 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
                 <FiCamera className="text-[var(--color-primary-text)] text-lg" />
               </div>
-              <span className="font-bold text-lg text-[var(--text-main)]">SnapTick</span>
+              <span className="font-bold text-lg text-[var(--text-main)]">
+                SnapTick
+              </span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -51,7 +61,7 @@ export default function LandingPage({ isDark, setIsDark }) {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero section */}
       <section className="pt-32 pb-24 px-6 relative">
         <div className="max-w-6xl mx-auto">
           <Motion.div
@@ -64,15 +74,17 @@ export default function LandingPage({ isDark, setIsDark }) {
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
               Powered by Computer Vision
             </div>
-            
+
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--text-main)] leading-[1.1] tracking-tight mb-6">
               Attendance tracking
               <br />
-              <span className="text-[var(--color-primary)]">that just works.</span>
+              <span className="text-[var(--color-primary)]">
+                that just works.
+              </span>
             </h1>
-            
+
             <p className="text-lg text-[var(--text-secondary)] mb-10 max-w-xl leading-relaxed">
-              Upload a group photo, and let AI recognize who&apos;s present. 
+              Upload a group photo, and let AI recognize who&apos;s present.
               Built for educators who value their time.
             </p>
 
@@ -93,7 +105,7 @@ export default function LandingPage({ isDark, setIsDark }) {
             </div>
           </Motion.div>
 
-          {/* Stats */}
+          {/* Key stats */}
           <Motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -103,18 +115,22 @@ export default function LandingPage({ isDark, setIsDark }) {
             {[
               { value: "2 sec", label: "Average scan time" },
               { value: "99.2%", label: "Recognition accuracy" },
-              { value: "Free", label: "For educators" }
+              { value: "Free", label: "For educators" },
             ].map((stat, i) => (
               <div key={i} className="text-center sm:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">{stat.value}</div>
-                <div className="text-sm text-[var(--text-muted)] mt-1">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-[var(--text-muted)] mt-1">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </Motion.div>
         </div>
       </section>
 
-      {/* Demo Preview */}
+      {/* Demo preview */}
       <section className="px-6 pb-24">
         <div className="max-w-5xl mx-auto">
           <Motion.div
@@ -132,27 +148,41 @@ export default function LandingPage({ isDark, setIsDark }) {
                   <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
                 </div>
                 <div className="flex-1 h-8 bg-[var(--bg-card)] rounded-lg border border-[var(--border-subtle)] flex items-center px-3">
-                  <span className="text-xs text-[var(--text-muted)]">dashboard.attendai.app</span>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    dashboard.attendai.app
+                  </span>
                 </div>
               </div>
-              
+
               <div className="grid sm:grid-cols-2 gap-4">
-                {/* Left - Image placeholder */}
+                {/* Left: image placeholder */}
                 <div className="aspect-[4/3] bg-[var(--bg-card)] rounded-lg border border-[var(--border-subtle)] flex items-center justify-center">
                   <div className="text-center">
                     <FiCamera className="text-4xl text-[var(--text-muted)] mx-auto mb-2" />
-                    <p className="text-sm text-[var(--text-muted)]">Upload class photo</p>
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Upload class photo
+                    </p>
                   </div>
                 </div>
-                
-                {/* Right - Results */}
+
+                {/* Right: results */}
                 <div className="space-y-3">
-                  {["Alex Johnson", "Maria Garcia", "James Chen", "Sarah Williams"].map((name, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-[var(--bg-card)] rounded-lg border border-[var(--border-subtle)]">
+                  {[
+                    "Alex Johnson",
+                    "Maria Garcia",
+                    "James Chen",
+                    "Sarah Williams",
+                  ].map((name, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-3 bg-[var(--bg-card)] rounded-lg border border-[var(--border-subtle)]"
+                    >
                       <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center text-[var(--color-primary)] text-sm font-medium">
                         {name.charAt(0)}
                       </div>
-                      <span className="flex-1 text-sm font-medium text-[var(--text-main)]">{name}</span>
+                      <span className="flex-1 text-sm font-medium text-[var(--text-main)]">
+                        {name}
+                      </span>
                       <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
                         <FiCheck className="text-emerald-500 text-sm" />
                       </div>
@@ -179,7 +209,8 @@ export default function LandingPage({ isDark, setIsDark }) {
               Built for real classrooms
             </h2>
             <p className="text-[var(--text-secondary)] max-w-lg mx-auto">
-              No complex setup. No expensive hardware. Just a camera and your students.
+              No complex setup. No expensive hardware. Just a camera and your
+              students.
             </p>
           </Motion.div>
 
@@ -188,33 +219,33 @@ export default function LandingPage({ isDark, setIsDark }) {
               {
                 icon: FiZap,
                 title: "Instant Recognition",
-                desc: "Upload a photo and get attendance marked in seconds. No manual entry needed."
+                desc: "Upload a photo and get attendance marked in seconds. No manual entry needed.",
               },
               {
                 icon: FiLayers,
                 title: "Multi-Classroom",
-                desc: "Organize students by class, section, or subject. Each with its own attendance history."
+                desc: "Organize students by class, section, or subject. Each with its own attendance history.",
               },
               {
                 icon: FiClock,
                 title: "Save Hours Weekly",
-                desc: "Replace 15-minute roll calls with a single photo. Time better spent teaching."
+                desc: "Replace 15-minute roll calls with a single photo. Time better spent teaching.",
               },
               {
                 icon: FiShield,
                 title: "Privacy First",
-                desc: "Face data stays on your account. No sharing with third parties. Ever."
+                desc: "Face data stays on your account. No sharing with third parties. Ever.",
               },
               {
                 icon: FiBarChart2,
                 title: "Attendance Records",
-                desc: "View history, edit records, and track participation patterns over time."
+                desc: "View history, edit records, and track participation patterns over time.",
               },
               {
                 icon: FiUsers,
                 title: "Easy Enrollment",
-                desc: "Add students with a single photo. The system learns to recognize them automatically."
-              }
+                desc: "Add students with a single photo. The system learns to recognize them automatically.",
+              },
             ].map((feature, i) => (
               <Motion.div
                 key={i}
@@ -227,8 +258,12 @@ export default function LandingPage({ isDark, setIsDark }) {
                 <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] mb-4">
                   <feature.icon size={20} />
                 </div>
-                <h3 className="font-semibold text-[var(--text-main)] mb-2">{feature.title}</h3>
-                <p className="text-sm text-[var(--text-muted)] leading-relaxed">{feature.desc}</p>
+                <h3 className="font-semibold text-[var(--text-main)] mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                  {feature.desc}
+                </p>
               </Motion.div>
             ))}
           </div>
@@ -255,18 +290,18 @@ export default function LandingPage({ isDark, setIsDark }) {
               {
                 step: "01",
                 title: "Create a classroom",
-                desc: "Name it, add a description if you want. Takes about 10 seconds."
+                desc: "Name it, add a description if you want. Takes about 10 seconds.",
               },
               {
                 step: "02",
                 title: "Enroll your students",
-                desc: "Upload a photo of each student. The AI learns their face automatically."
+                desc: "Upload a photo of each student. The AI learns their face automatically.",
               },
               {
                 step: "03",
                 title: "Snap and done",
-                desc: "Take a group photo. The system marks who's present. Attendance complete."
-              }
+                desc: "Take a group photo. The system marks who's present. Attendance complete.",
+              },
             ].map((item, i) => (
               <Motion.div
                 key={i}
@@ -280,7 +315,9 @@ export default function LandingPage({ isDark, setIsDark }) {
                   {item.step}
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-[var(--text-main)] mb-2">{item.title}</h3>
+                  <h3 className="text-xl font-semibold text-[var(--text-main)] mb-2">
+                    {item.title}
+                  </h3>
                   <p className="text-[var(--text-secondary)]">{item.desc}</p>
                 </div>
               </Motion.div>
@@ -289,7 +326,7 @@ export default function LandingPage({ isDark, setIsDark }) {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Call to action */}
       <section className="py-20 px-6">
         <div className="max-w-2xl mx-auto text-center">
           <Motion.div
@@ -323,7 +360,9 @@ export default function LandingPage({ isDark, setIsDark }) {
             <div className="h-7 w-7 rounded-md bg-[var(--color-primary)] flex items-center justify-center">
               <FiCamera className="text-[var(--color-primary-text)] text-sm" />
             </div>
-            <span className="font-semibold text-[var(--text-main)]">SnapTick</span>
+            <span className="font-semibold text-[var(--text-main)]">
+              SnapTick
+            </span>
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             Face recognition attendance for modern classrooms.

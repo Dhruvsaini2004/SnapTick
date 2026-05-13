@@ -1,4 +1,4 @@
-// backend/server.js
+// Server entrypoint
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -14,13 +14,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Security headers with helmet (configured for API usage)
+// Security headers via Helmet (API-focused configuration)
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow serving images cross-origin
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin image serving
   contentSecurityPolicy: false // Disable CSP for API server
 }));
 
-// Rate limiting - prevent abuse
+// Rate limiting to prevent abuse
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: isProduction ? 100 : 1000, // Stricter in production
@@ -39,14 +39,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// CORS configuration - strict in production
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+// CORS configuration (strict in production)
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
+  origin: function (origin, callback) {
+    // Allow requests without origin (mobile apps, curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -62,18 +62,18 @@ app.use(cors({
   credentials: true
 }));
 
-// JSON body parser with size limit for large face descriptor payloads
+// JSON body parser with size limits for large payloads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static file serving with absolute paths
+// Static file serving
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/models", express.static(path.join(__dirname, "face-models")));
 
-// connect database
+// Connect database
 connectDB();
 
-// routes
+// Routes
 app.use("/auth", authLimiter, authRoute); // Stricter rate limit for auth
 app.use("/classroom", classroomRoute);
 app.use("/enroll", enrollRoute);
